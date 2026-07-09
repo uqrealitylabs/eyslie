@@ -1,0 +1,64 @@
+{
+  "name": "@uqrealitylabs/eyslie",
+  "version": "0.1.0",
+  "description": "Living UI eyes, winks, blush, bubbles, and playful text reactions for React.",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "packageManager": "npm@11.12.1",
+  "sideEffects": [
+    "src/styles/eyslie.css"
+  ],
+  "files": [
+    "dist",
+    "src/styles",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./src/styles/eyslie.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format:check": "biome format .",
+    "test": "vitest run",
+    "prebuild": "rm -rf dist",
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uqrealitylabs/eyslie.git"
+  },
+  "bugs": {
+    "url": "https://github.com/uqrealitylabs/eyslie/issues"
+  },
+  "homepage": "https://github.com/uqrealitylabs/eyslie#readme",
+  "keywords": [
+    "react",
+    "ui",
+    "animation",
+    "eyes",
+    "living-text"
+  ],
+  "peerDependencies": {
+    "react": ">=18 <20"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.7",
+    "@types/react": "^19.2.7",
+    "react": "^19.2.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

@@ -1,0 +1,110 @@
+.eyslie {
+  --eyslie-idle-color: #d7261e;
+  --eyslie-excited-color: #f2b705;
+  --eyslie-sad-color: #2f6fed;
+  --eyslie-eye-color: #fffaf0;
+  --eyslie-pupil-color: #6b3f22;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  color: var(--eyslie-idle-color);
+  font: inherit;
+}
+
+.eyslie[data-mood="excited"],
+.eyslie[data-mood="blush"],
+.eyslie[data-mood="celebration"] {
+  color: var(--eyslie-excited-color);
+}
+
+.eyslie[data-mood="sadShrivel"] {
+  color: var(--eyslie-sad-color);
+}
+
+.eyslie__letters {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.02em;
+}
+
+.eyslie__letter {
+  display: inline-block;
+  position: relative;
+  line-height: 1;
+}
+
+.eyslie__letter--eye {
+  min-width: 0.72em;
+  text-align: center;
+}
+
+.eyslie__glyph {
+  position: relative;
+  z-index: 1;
+}
+
+.eyslie__inner-eye,
+.eyslie__pupil {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+}
+
+.eyslie__inner-eye {
+  z-index: 2;
+  width: 0.46em;
+  height: 0.35em;
+  background: var(--eyslie-eye-color);
+}
+
+.eyslie__pupil {
+  z-index: 3;
+  width: 0.16em;
+  height: 0.16em;
+  background: var(--eyslie-pupil-color);
+  transform: translate(
+    calc(-50% + var(--eyslie-pupil-x, 0px)),
+    calc(-50% + var(--eyslie-pupil-y, 0px))
+  );
+}
+
+.eyslie__letter[data-eye-role="secondary"][data-winking="true"]
+  .eyslie__inner-eye {
+  height: 0.06em;
+}
+
+.eyslie__thought {
+  position: absolute;
+  left: 50%;
+  top: -1.3em;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 0.32em;
+  line-height: 1;
+}
+
+.eyslie__blush {
+  position: absolute;
+  inset: auto 0 -0.2em 0;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.eyslie__blush span {
+  width: 0.32em;
+  height: 0.16em;
+  border-radius: 999px;
+  background: #ff8fa3;
+  opacity: 0.78;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eyslie__pupil,
+  .eyslie__inner-eye {
+    transition: none;
+  }
+}

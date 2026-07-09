@@ -1,85 +1,118 @@
-# Unity / XR / Game Project Template
+# eyslie
 
-A starter repo for Unity, Unreal, Godot, XR builds, games, prototypes, and interactive demos.
+Living text, eyes, winks, blush, bubbles, and small playful reactions for React.
 
-> [!NOTE]
-> This repo is a template. Delete anything that does not fit your project.
+## What It Is
 
-## What this is
+`@uqrealitylabs/eyslie` turns plain text into accessible living letters. It was extracted from the UQ Reality Labs `JOIN US` interaction and keeps the reusable parts: an O eye, a U eyelid, pupil tracking, wink timing, mood transitions, thought bubbles, and reduced-motion support.
 
-Use this as a clean starting point for interactive projects. It gives you practical issue templates, a pull request template, and reusable `.gitignore` snippets without adding engine project files.
+It is DOM/CSS/React only. No Three.js, no route logic, no website content graph.
 
-## When to use it
+## When To Use It
 
-Use it for class projects, club builds, research prototypes, game jams, XR demos, and small team projects that need a tidy repo from day one.
+Use it when a wordmark, call-to-action, or short label should react to pointer proximity or an external state.
 
-## Pick your engine
+Do not use it for long paragraphs, layout-heavy navigation, or anything that must look identical in every browser font.
 
-| Engine | Start with | Notes |
-| --- | --- | --- |
-| Unity | `ignores/unity.gignore` | Track `Assets`, `Packages`, `ProjectSettings`, and `.meta` files. |
-| Unreal | `ignores/unreal.gignore` | Track `Config`, `Content`, `Source`, and `.uproject`. |
-| Godot | `ignores/godot.gignore` | Do not commit export credentials. |
-| Other | `ignores/common.gignore` | Add only the snippets that match your tools. |
-
-## Quick start
+## Install
 
 ```sh
-git clone <repo-url>
-cd <repo>
-cat ignores/common.gignore ignores/<engine>.gignore >> .gitignore
+npm install @uqrealitylabs/eyslie
 ```
 
-Use the engine file you picked above, for example `ignores/unity.gignore`. Do not overwrite an existing project `.gitignore` blindly. Merge snippets intentionally.
-
-> [!TIP]
-> Start with the engine-specific ignore file, then add only the extras you actually need.
-
-## Ignore files
-
-The root `.gitignore` is conservative so the template repo stays clean. Reusable snippets live in [`ignores/`](ignores/README.md). Copy or merge the snippets that match your project, engine, platform, and editor.
-
-> [!IMPORTANT]
-> Unity `.meta` files are usually part of the project and should normally be committed.
-
-## Repo layout
-
-```text
-.github/ISSUE_TEMPLATE/  GitHub issue forms
-.github/PULL_REQUEST_TEMPLATE.md
-ignores/                 Reusable .gitignore snippets
-README.md
-CONTRIBUTING.md
-CODE_OF_CONDUCT.md
-SECURITY.md
+```tsx
+import { LivingText } from "@uqrealitylabs/eyslie";
+import "@uqrealitylabs/eyslie/styles.css";
 ```
 
-## Asset rules
+## Basic Example
 
-Commit source assets that the team is allowed to share and needs to build the project. Keep generated builds, caches, recordings, private packages, and large exports out of Git unless the project has a clear storage plan.
+```tsx
+import { LivingText, livingTextMoods } from "@uqrealitylabs/eyslie";
+
+export function JoinButton() {
+  return (
+    <LivingText
+      text="JOIN US"
+      mood={livingTextMoods.idleCurious}
+      eyeLetters={{ primary: "O", secondary: "U" }}
+      thoughts={{ nearStartled: "AWWWW", celebration: "yay" }}
+      ariaLabel="Join us"
+    />
+  );
+}
+```
+
+> [!NOTE]
+> The component renders animated letters as `aria-hidden` and keeps a readable `aria-label` on the wrapper.
+
+## Concepts
+
+### Living Letters
+
+`splitTextLetters()` uses `Array.from()` so emoji and composed characters are not split as raw UTF-16 units. Select eye anchors by letter value or letter index.
+
+### O Eye / U Eyelid
+
+The primary eye keeps the original glyph visible, then layers a white eye interior and brown pupil inside it. The secondary eye can render as an eyelid/wink target.
+
+### Moods
+
+The reusable moods are:
+
+- `idleCurious`
+- `nearStartled`
+- `excited`
+- `blush`
+- `celebration`
+- `sadShrivel`
+- `recovery`
+
+### Thought Bubbles
+
+Pass `thoughts` to override strings such as `AWWWW`, `aw.`, `ow.`, and `yay`.
+
+### Reduced Motion
+
+Set `reducedMotion` to suppress wink timers and cursor-following transforms. The static text remains readable.
+
+## Accessibility Notes
+
+Always pass `ariaLabel` when the visible text is decorative, stylised, or not the exact spoken phrase. The animated letter spans are hidden from assistive tech.
 
 > [!WARNING]
-> Do not commit paid assets, licence keys, private packages, generated builds, or giant cache folders.
+> Do not use this package as the only label for a critical action unless the surrounding button or link also has a stable accessible name.
 
-## Branch and commit habits
+## Testing Notes
 
-Use short branches for focused work. Commit related changes together, and keep generated files out of the diff. Write commit messages that say what changed, not what tool made the change.
+Deterministic helpers are exported from the main entry:
 
-## Issues and pull requests
+- `createWinkSchedule(seed, count)`
+- `constrainPupilOffset(x, y, bounds)`
+- `nextLivingTextMood(mood, event, elapsedMs)`
+- `isPointerNear(rect, point, radius)`
 
-Use the issue forms for tasks, bugs, setup problems, and asset import problems. Pull requests should list the engine/tool version, what was tested, and any files reviewers should inspect closely.
+## What This Package Does Not Do
 
-## Security notes
+- It does not navigate routes.
+- It does not know about UQ content, Rubrics pages, or social links.
+- It does not ship brand assets.
+- It does not include animation libraries.
 
-Report secrets, credential leaks, signing keys, paid packages, or exploit details privately where possible. See [`SECURITY.md`](SECURITY.md).
+> [!TIP]
+> Keep site-specific wrappers in the app. Let `eyslie` handle letter behaviour only.
 
-## Maintainer checklist
+## Development Commands
 
-- Keep this template engine-neutral.
-- Remove project-specific files before sharing.
-- Update ignore snippets when project tooling changes.
-- Keep issue and PR templates short enough that people use them.
+```sh
+npm install
+npm run typecheck
+npm run lint
+npm run format:check
+npm run test
+npm run build
+```
 
-## Licence
+## License
 
-This template is licensed under the terms in [`LICENSE`](LICENSE).
+See `LICENSE`.
