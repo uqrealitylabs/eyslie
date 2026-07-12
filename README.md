@@ -87,7 +87,7 @@ Always pass `ariaLabel` when the visible text is decorative, stylised, or not th
 
 Deterministic helpers are exported from the main entry:
 
-- `createWinkSchedule(seed, count)`
+- `createWinkSchedule(seed)`
 - `constrainPupilOffset(x, y, bounds)`
 - `nextLivingTextMood(mood, event, elapsedMs)`
 - `isPointerNear(rect, point, radius)`

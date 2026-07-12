@@ -60,6 +60,11 @@
   background: var(--eyslie-eye-color);
 }
 
+.eyslie[data-mood="sadShrivel"] .eyslie__inner-eye {
+  height: 0.28em;
+  transform: translate(-50%, -42%) scaleY(0.78);
+}
+
 .eyslie__pupil {
   z-index: 3;
   width: 0.16em;
@@ -88,18 +93,36 @@
 
 .eyslie__blush {
   position: absolute;
-  inset: auto 0 -0.2em 0;
-  display: flex;
-  justify-content: space-between;
+  left: 0;
+  right: 0;
+  bottom: -0.24em;
+  height: 0.24em;
   pointer-events: none;
 }
 
 .eyslie__blush span {
+  position: absolute;
+  top: 0;
   width: 0.32em;
   height: 0.16em;
   border-radius: 999px;
-  background: #ff8fa3;
-  opacity: 0.78;
+  background: radial-gradient(
+    circle,
+    rgb(255 143 163 / 56%),
+    rgb(255 143 163 / 0%)
+  );
+  filter: blur(0.02em);
+  opacity: 0.52;
+}
+
+.eyslie__blush span:first-child {
+  left: 23%;
+  transform: translateX(-50%) rotate(-8deg);
+}
+
+.eyslie__blush span:last-child {
+  right: 23%;
+  transform: translateX(50%) rotate(8deg);
 }
 
 @media (prefers-reduced-motion: reduce) {

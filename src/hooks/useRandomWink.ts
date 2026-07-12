@@ -8,10 +8,8 @@ export function getOrganicWinkDelayMs(seed: number, winkIndex: number) {
   return Math.round(2600 + unit * 3600);
 }
 
-export function createWinkSchedule(seed: number, count: number) {
-  return Array.from({ length: count }, (_, index) =>
-    getOrganicWinkDelayMs(seed, index),
-  );
+export function createWinkSchedule(seed: number) {
+  return (winkIndex: number) => getOrganicWinkDelayMs(seed, winkIndex);
 }
 
 export function useRandomWink(options: {
@@ -21,12 +19,12 @@ export function useRandomWink(options: {
 }) {
   const seed = options.seed ?? 1;
   const [winkIndex, setWinkIndex] = useState(0);
-  const schedule = useMemo(() => createWinkSchedule(seed, 12), [seed]);
+  const schedule = useMemo(() => createWinkSchedule(seed), [seed]);
 
   useEffect(() => {
     if (options.disabled || options.testMode) return;
 
-    const delay = schedule[winkIndex % schedule.length] ?? 3200;
+    const delay = schedule(winkIndex);
     const timer = window.setTimeout(() => {
       setWinkIndex((current) => current + 1);
     }, delay);
@@ -37,6 +35,6 @@ export function useRandomWink(options: {
   return {
     isWinking: !options.disabled && winkIndex % 2 === 1,
     winkIndex,
-    nextDelayMs: schedule[winkIndex % schedule.length] ?? 3200,
+    nextDelayMs: schedule(winkIndex),
   };
 }

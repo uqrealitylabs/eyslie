@@ -25,12 +25,19 @@
     "./styles.css": "./src/styles/eyslie.css"
   },
   "scripts": {
+    "check:no-js": "node scripts/assert-no-js.ts",
+    "check:workflows": "node scripts/assert-actions-pinned.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format:check": "biome format .",
-    "test": "vitest run",
+    "test": "vitest run --config vitest.config.ts --coverage.enabled true",
+    "test:coverage": "npm run test",
     "prebuild": "rm -rf dist",
     "build": "tsc -p tsconfig.build.json",
+    "package:check": "npm pack --dry-run --cache /tmp/npm-cache",
+    "pack:check": "npm run package:check",
+    "test:consumer": "node scripts/consumer-smoke.ts",
+    "security:audit": "npm audit --audit-level=moderate",
     "prepare": "npm run build"
   },
   "repository": {
@@ -54,7 +61,10 @@
   "devDependencies": {
     "@biomejs/biome": "^2.3.7",
     "@types/react": "^19.2.7",
+    "@types/react-test-renderer": "^19.1.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "react": "^19.2.1",
+    "react-test-renderer": "^19.2.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
   },

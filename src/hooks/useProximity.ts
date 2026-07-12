@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 
 export type PointerRect = {
   left: number;
@@ -28,6 +28,7 @@ export function useProximity(
   } = {},
 ) {
   const [near, setNear] = useState(false);
+  const nearRef = useRef(false);
   const radius = options.radius ?? 80;
 
   useEffect(() => {
@@ -37,9 +38,15 @@ export function useProximity(
       const element = ref.current;
       if (!element) return;
       const rect = element.getBoundingClientRect();
-      setNear(
-        isPointerNear(rect, { x: event.clientX, y: event.clientY }, radius),
+      const nextNear = isPointerNear(
+        rect,
+        { x: event.clientX, y: event.clientY },
+        radius,
       );
+      if (nearRef.current === nextNear) return;
+
+      nearRef.current = nextNear;
+      setNear(nextNear);
     };
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
