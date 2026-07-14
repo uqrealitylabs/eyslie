@@ -23,15 +23,23 @@ export {
   getPupilOffsetFromRect,
 } from "./math/eyeMath.js";
 export type {
+  AffectVector,
+  LivingTextEmotionName,
+  LivingTextEmotionParameters,
   LivingTextEvent,
+  LivingTextEyeStyle,
   LivingTextMood,
 } from "./state/livingTextMachine.js";
 export {
   defaultThoughts,
   getThoughtForMood,
   LIVING_TEXT_BLUSH_DELAY_MS,
+  livingTextEmotionNames,
+  livingTextEmotionPresets,
+  livingTextEyeStyles,
   livingTextMoods,
   nextLivingTextMood,
+  resolveLivingTextEmotion,
   shouldAnimateLivingText,
   shouldShowBlush,
   splitTextLetters,

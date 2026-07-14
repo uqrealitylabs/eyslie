@@ -116,12 +116,12 @@
 }
 
 .eyslie__blush span:first-child {
-  left: 23%;
+  left: 12%;
   transform: translateX(-50%) rotate(-8deg);
 }
 
 .eyslie__blush span:last-child {
-  right: 23%;
+  right: 12%;
   transform: translateX(50%) rotate(8deg);
 }
 

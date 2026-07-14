@@ -11,8 +11,12 @@ import {
   LetterEye,
   LIVING_TEXT_BLUSH_DELAY_MS,
   LivingText,
+  livingTextEmotionNames,
+  livingTextEmotionPresets,
+  livingTextEyeStyles,
   livingTextMoods,
   nextLivingTextMood,
+  resolveLivingTextEmotion,
   shouldAnimateLivingText,
   shouldShowBlush,
   splitTextLetters,
@@ -153,6 +157,46 @@ describe("proximity, thought bubbles, and accessibility helpers", () => {
     expect(shouldAnimateLivingText({ testMode: true })).toBe(false);
     expect(shouldAnimateLivingText({})).toBe(true);
   });
+
+  it("resolves comprehensive emotion and style contracts", () => {
+    expect(livingTextEmotionNames).toContain("empathic-pain");
+    expect(livingTextEmotionNames).toContain("craving");
+    expect(livingTextEyeStyles).toEqual([
+      "cartoon",
+      "hand-drawn",
+      "ink",
+      "anime",
+      "googly",
+      "minimal",
+      "soft-pastel",
+      "geometric",
+    ]);
+    for (const name of livingTextEmotionNames) {
+      const preset = livingTextEmotionPresets[name];
+      const resolved = resolveLivingTextEmotion(name, 0.8);
+
+      expect(preset.valence).toBeGreaterThanOrEqual(-1);
+      expect(preset.valence).toBeLessThanOrEqual(1);
+      expect(resolved.eyeOpenness).toBeGreaterThanOrEqual(0);
+      expect(resolved.eyeOpenness).toBeLessThanOrEqual(1);
+      expect(resolved.tearAmount).toBeGreaterThanOrEqual(0);
+      expect(resolved.blushAmount).toBeGreaterThanOrEqual(0);
+    }
+
+    expect(
+      resolveLivingTextEmotion({
+        valence: 2,
+        arousal: 2,
+        dominance: -2,
+        intensity: 2,
+      }),
+    ).toMatchObject({
+      valence: 1,
+      arousal: 1,
+      dominance: -1,
+      intensity: 1,
+    });
+  });
 });
 
 describe("rendered pieces", () => {
@@ -177,6 +221,8 @@ describe("rendered pieces", () => {
           ariaLabel="Join us"
           mood={livingTextMoods.blush}
           eyeLetters={{ primary: 1, secondary: 4 }}
+          emotion="joy"
+          eyeStyle="minimal"
           testMode
         />,
       );
@@ -186,6 +232,8 @@ describe("rendered pieces", () => {
     expect(JSON.stringify(tree)).toContain('"aria-label":"Join us"');
     expect(JSON.stringify(tree)).toContain('"data-eye-role":"primary"');
     expect(JSON.stringify(tree)).toContain('"data-eye-role":"secondary"');
+    expect(JSON.stringify(tree)).toContain('"data-eye-style":"minimal"');
+    expect(JSON.stringify(tree)).toContain('"data-emotion":"joy"');
     expect(JSON.stringify(tree)).toContain("AWWWW");
 
     act(() => {
@@ -208,6 +256,192 @@ describe("rendered pieces", () => {
     expect(JSON.stringify(renderer?.toJSON())).toContain(
       '"data-reduced-motion":"true"',
     );
+  });
+
+  it("renders plain text before readiness and calls external readiness", () => {
+    const onReady = vi.fn();
+    let renderer: ReturnType<typeof create> | undefined;
+
+    act(() => {
+      renderer = create(
+        <LivingText
+          text="JOIN US"
+          ready={false}
+          onReady={onReady}
+          eyeLetters={{ primary: 1, secondary: 4 }}
+        />,
+      );
+    });
+    expect(JSON.stringify(renderer?.toJSON())).toContain(
+      '"data-ready":"false"',
+    );
+    expect(JSON.stringify(renderer?.toJSON())).not.toContain("data-eye-role");
+
+    act(() => {
+      renderer = create(
+        <LivingText
+          text="JOIN US"
+          ready
+          onReady={onReady}
+          eyeLetters={{ primary: 1, secondary: 4 }}
+        />,
+      );
+    });
+    expect(JSON.stringify(renderer?.toJSON())).toContain('"data-ready":"true"');
+    expect(JSON.stringify(renderer?.toJSON())).toContain("data-eye-role");
+    expect(onReady).toHaveBeenCalled();
+  });
+
+  it("waits for browser font and layout readiness before drawing eyes", async () => {
+    const previousWindow = globalThis.window;
+    const previousDocument = globalThis.document;
+    const previousResizeObserver = globalThis.ResizeObserver;
+    const frames: FrameRequestCallback[] = [];
+    const disconnect = vi.fn();
+    const observe = vi.fn();
+    const onReady = vi.fn();
+    class FakeResizeObserver {
+      observe = observe;
+      disconnect = disconnect;
+    }
+    globalThis.window = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      requestAnimationFrame: (callback: FrameRequestCallback) => {
+        frames.push(callback);
+        return frames.length;
+      },
+      cancelAnimationFrame: vi.fn(),
+      setTimeout,
+      clearTimeout,
+    } as unknown as Window & typeof globalThis;
+    globalThis.document = {
+      fonts: { ready: Promise.resolve() },
+    } as unknown as Document;
+    globalThis.ResizeObserver =
+      FakeResizeObserver as unknown as typeof ResizeObserver;
+
+    let renderer: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      renderer = create(<LivingText text="JOIN US" onReady={onReady} />, {
+        createNodeMock: () => ({
+          style: { setProperty: vi.fn() },
+          getBoundingClientRect: () => ({
+            left: 0,
+            top: 0,
+            width: 120,
+            height: 30,
+          }),
+        }),
+      });
+      await Promise.resolve();
+    });
+    expect(JSON.stringify(renderer?.toJSON())).toContain(
+      '"data-ready":"false"',
+    );
+    await act(async () => {
+      frames.shift()?.(0);
+      frames.shift()?.(16);
+      await Promise.resolve();
+    });
+
+    expect(JSON.stringify(renderer?.toJSON())).toContain('"data-ready":"true"');
+    expect(onReady).toHaveBeenCalled();
+    expect(observe).toHaveBeenCalled();
+
+    act(() => {
+      renderer?.unmount();
+    });
+    expect(disconnect).toHaveBeenCalled();
+    globalThis.window = previousWindow;
+    globalThis.document = previousDocument;
+    globalThis.ResizeObserver = previousResizeObserver;
+  });
+
+  it("keeps overlays disabled when the site is not ready", () => {
+    const previousWindow = globalThis.window;
+    const previousDocument = globalThis.document;
+    const previousResizeObserver = globalThis.ResizeObserver;
+    globalThis.window = {
+      requestAnimationFrame: vi.fn(),
+      cancelAnimationFrame: vi.fn(),
+    } as unknown as Window & typeof globalThis;
+    globalThis.document = {} as Document;
+    globalThis.ResizeObserver = vi.fn() as unknown as typeof ResizeObserver;
+
+    let renderer: ReturnType<typeof create> | undefined;
+    act(() => {
+      renderer = create(<LivingText text="JOIN US" siteReady={false} />);
+    });
+
+    expect(JSON.stringify(renderer?.toJSON())).toContain(
+      '"data-ready":"false"',
+    );
+    expect(JSON.stringify(renderer?.toJSON())).not.toContain("data-eye-role");
+    globalThis.window = previousWindow;
+    globalThis.document = previousDocument;
+    globalThis.ResizeObserver = previousResizeObserver;
+  });
+
+  it("handles fallback timers and failed readiness measurement", async () => {
+    const previousWindow = globalThis.window;
+    const previousDocument = globalThis.document;
+    const previousResizeObserver = globalThis.ResizeObserver;
+    const timers: TimerHandler[] = [];
+    const clearTimeoutMock = vi.fn();
+    globalThis.window = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      setTimeout: (callback: TimerHandler) => {
+        timers.push(callback);
+        return timers.length;
+      },
+      clearTimeout: clearTimeoutMock,
+    } as unknown as Window & typeof globalThis;
+    globalThis.document = {} as Document;
+    globalThis.ResizeObserver = class {
+      observe() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+
+    let renderer: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      renderer = create(<LivingText text="JOIN US" />, {
+        createNodeMock: () => ({
+          style: { setProperty: vi.fn() },
+          getBoundingClientRect: () => ({ width: 0, height: 0 }),
+        }),
+      });
+      await Promise.resolve();
+    });
+    await act(async () => {
+      (timers.shift() as () => void)?.();
+      (timers.shift() as () => void)?.();
+      await Promise.resolve();
+    });
+    expect(JSON.stringify(renderer?.toJSON())).toContain(
+      '"data-ready":"false"',
+    );
+
+    await act(async () => {
+      renderer = create(<LivingText text="JOIN US" />, {
+        createNodeMock: () => ({
+          style: { setProperty: vi.fn() },
+          getBoundingClientRect: () => ({ width: 120, height: 20 }),
+        }),
+      });
+      await Promise.resolve();
+    });
+    act(() => {
+      renderer?.unmount();
+    });
+    (timers.shift() as () => void)?.();
+    (timers.shift() as () => void)?.();
+    expect(clearTimeoutMock).toHaveBeenCalled();
+
+    globalThis.window = previousWindow;
+    globalThis.document = previousDocument;
+    globalThis.ResizeObserver = previousResizeObserver;
   });
 });
 

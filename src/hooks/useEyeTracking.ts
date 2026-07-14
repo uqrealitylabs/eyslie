@@ -13,7 +13,7 @@ export function useEyeTracking(
       ref.current?.style.setProperty("--eyslie-pupil-y", "0px");
     };
 
-    if (options.disabled) {
+    if (options.disabled || typeof window === "undefined") {
       reset();
       return;
     }

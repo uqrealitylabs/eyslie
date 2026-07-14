@@ -22,7 +22,8 @@ export function useRandomWink(options: {
   const schedule = useMemo(() => createWinkSchedule(seed), [seed]);
 
   useEffect(() => {
-    if (options.disabled || options.testMode) return;
+    if (options.disabled || options.testMode || typeof window === "undefined")
+      return;
 
     const delay = schedule(winkIndex);
     const timer = window.setTimeout(() => {
