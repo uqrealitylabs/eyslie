@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Eyslie Demo</title>
+    <link rel="stylesheet" href="../../src/styles/eyslie.css" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: system-ui, sans-serif;
+        background: #f8f6ef;
+        color: #2b1612;
+      }
+      main {
+        display: grid;
+        gap: 1rem;
+        width: min(42rem, calc(100vw - 2rem));
+      }
+      label,
+      select,
+      input {
+        font: inherit;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="root"></div>
+      <form class="controls" aria-label="Eyslie controls">
+        <label>
+          Text
+          <input id="text" value="JOIN US" />
+        </label>
+        <label>
+          Mood
+          <select id="mood">
+            <option value="idle">idle</option>
+            <option value="excited">excited</option>
+            <option value="celebration">celebration</option>
+            <option value="sad">sad</option>
+          </select>
+        </label>
+        <label>
+          <input id="motion" type="checkbox" />
+          reduced motion
+        </label>
+      </form>
+    </main>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@19.2.1",
+          "react-dom/client": "https://esm.sh/react-dom@19.2.1/client"
+        }
+      }
+    </script>
+    <script type="module">
+      import React, { createElement } from "react";
+      import { createRoot } from "react-dom/client";
+      import { LivingText } from "../../dist/index.js";
+
+      const root = createRoot(document.querySelector("#root"));
+      const text = document.querySelector("#text");
+      const mood = document.querySelector("#mood");
+      const motion = document.querySelector("#motion");
+
+      function render() {
+        root.render(
+          createElement(LivingText, {
+            text: text.value,
+            mood: mood.value,
+            accessibleLabel: text.value,
+            reducedMotion: motion.checked,
+            eyeLetters: { primary: "O", secondary: "U" },
+            bubbles: { near: "AWWWW", celebration: "yay", sad: "aw." },
+          }),
+        );
+      }
+
+      text.addEventListener("input", render);
+      mood.addEventListener("change", render);
+      motion.addEventListener("change", render);
+      render();
+    </script>
+  </body>
+</html>

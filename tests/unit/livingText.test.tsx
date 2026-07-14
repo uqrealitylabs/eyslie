@@ -20,7 +20,7 @@ import {
   useEyeTracking,
   useProximity,
   useRandomWink,
-} from "../src";
+} from "../../src";
 
 (
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
