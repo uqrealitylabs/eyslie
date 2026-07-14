@@ -78,11 +78,20 @@
         root.render(
           createElement(LivingText, {
             text: text.value,
-            mood: mood.value,
-            accessibleLabel: text.value,
+            mood:
+              mood.value === "idle"
+                ? "idleCurious"
+                : mood.value === "sad"
+                  ? "sadShrivel"
+                  : mood.value,
+            ariaLabel: text.value,
             reducedMotion: motion.checked,
             eyeLetters: { primary: "O", secondary: "U" },
-            bubbles: { near: "AWWWW", celebration: "yay", sad: "aw." },
+            thoughts: {
+              nearStartled: "AWWWW",
+              celebration: "yay",
+              sadShrivel: "aw.",
+            },
           }),
         );
       }
