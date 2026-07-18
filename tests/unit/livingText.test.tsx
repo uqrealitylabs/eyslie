@@ -129,6 +129,48 @@ describe("eye behaviour", () => {
     expect(first).toBeGreaterThanOrEqual(2600);
     expect(first).toBeLessThanOrEqual(6200);
   });
+
+  it("keeps random winks brief instead of closing for a whole interval", () => {
+    vi.useFakeTimers();
+    const previousWindow = globalThis.window;
+    globalThis.window = {
+      setTimeout,
+      clearTimeout,
+    } as unknown as Window & typeof globalThis;
+
+    function WinkProbe() {
+      const wink = useRandomWink({ seed: 12 });
+      return <span data-winking={wink.isWinking ? "true" : "false"} />;
+    }
+
+    let renderer: ReturnType<typeof create> | undefined;
+    act(() => {
+      renderer = create(<WinkProbe />);
+    });
+    expect(JSON.stringify(renderer?.toJSON())).toContain(
+      '"data-winking":"false"',
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(getOrganicWinkDelayMs(12, 0));
+    });
+    expect(JSON.stringify(renderer?.toJSON())).toContain(
+      '"data-winking":"true"',
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(160);
+    });
+    expect(JSON.stringify(renderer?.toJSON())).toContain(
+      '"data-winking":"false"',
+    );
+
+    act(() => {
+      renderer?.unmount();
+    });
+    globalThis.window = previousWindow;
+    vi.useRealTimers();
+  });
 });
 
 describe("proximity, thought bubbles, and accessibility helpers", () => {
@@ -220,7 +262,7 @@ describe("rendered pieces", () => {
           text="JOIN US"
           ariaLabel="Join us"
           mood={livingTextMoods.blush}
-          eyeLetters={{ primary: 1, secondary: 4 }}
+          eyeLetters={{ primary: 1, secondary: 5 }}
           emotion="joy"
           eyeStyle="minimal"
           testMode
