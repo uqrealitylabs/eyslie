@@ -68,9 +68,13 @@ function App() {
       setCopyStatus("Clipboard unavailable");
       return;
     }
-    await navigator.clipboard.writeText(defaultCode);
-    setCopyStatus("Copied");
-    window.setTimeout(() => setCopyStatus("Copy example"), 1600);
+    try {
+      await navigator.clipboard.writeText(defaultCode);
+      setCopyStatus("Copied");
+      window.setTimeout(() => setCopyStatus("Copy example"), 1600);
+    } catch {
+      setCopyStatus("Copy failed");
+    }
   }
 
   return (
