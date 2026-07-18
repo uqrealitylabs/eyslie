@@ -1,105 +1,20 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Eyslie Demo</title>
-    <link rel="stylesheet" href="../../src/styles/eyslie.css" />
-    <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        font-family: system-ui, sans-serif;
-        background: #f8f6ef;
-        color: #2b1612;
-      }
-      main {
-        display: grid;
-        gap: 1rem;
-        width: min(42rem, calc(100vw - 2rem));
-      }
-      label,
-      select,
-      input {
-        font: inherit;
-      }
-      .controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        align-items: center;
-      }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#10121a" />
+    <meta name="description" content="A live demo of Eyslie's expressive living text eyes for React." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ff5757'/%3E%3Ccircle cx='32' cy='32' r='15' fill='%23fff3d2'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%2310121a'/%3E%3C/svg%3E" />
+    <link rel="canonical" href="https://uqrealitylabs.com/project/eyslie/" />
+    <meta property="og:title" content="Eyslie | Living text eyes for React" />
+    <meta property="og:description" content="Explore anchored eyes, moods, winks, blush, bubbles, and reduced motion in Eyslie." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://uqrealitylabs.com/project/eyslie/" />
+    <title>Eyslie | Living text eyes for React</title>
   </head>
   <body>
-    <main>
-      <div id="root"></div>
-      <form class="controls" aria-label="Eyslie controls">
-        <label>
-          Text
-          <input id="text" value="JOIN US" />
-        </label>
-        <label>
-          Mood
-          <select id="mood">
-            <option value="idle">idle</option>
-            <option value="excited">excited</option>
-            <option value="celebration">celebration</option>
-            <option value="sad">sad</option>
-          </select>
-        </label>
-        <label>
-          <input id="motion" type="checkbox" />
-          reduced motion
-        </label>
-      </form>
-    </main>
-    <script type="importmap">
-      {
-        "imports": {
-          "react": "https://esm.sh/react@19.2.1",
-          "react-dom/client": "https://esm.sh/react-dom@19.2.1/client"
-        }
-      }
-    </script>
-    <script type="module">
-      import React, { createElement } from "react";
-      import { createRoot } from "react-dom/client";
-      import { LivingText } from "../../dist/index.js";
-
-      const root = createRoot(document.querySelector("#root"));
-      const text = document.querySelector("#text");
-      const mood = document.querySelector("#mood");
-      const motion = document.querySelector("#motion");
-
-      function render() {
-        root.render(
-          createElement(LivingText, {
-            text: text.value,
-            mood:
-              mood.value === "idle"
-                ? "idleCurious"
-                : mood.value === "sad"
-                  ? "sadShrivel"
-                  : mood.value,
-            ariaLabel: text.value,
-            reducedMotion: motion.checked,
-            eyeLetters: { primary: "O", secondary: "U" },
-            thoughts: {
-              nearStartled: "AWWWW",
-              celebration: "yay",
-              sadShrivel: "aw.",
-            },
-          }),
-        );
-      }
-
-      text.addEventListener("input", render);
-      mood.addEventListener("change", render);
-      motion.addEventListener("change", render);
-      render();
-    </script>
+    <div id="root"><p>Loading the living letters...</p></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

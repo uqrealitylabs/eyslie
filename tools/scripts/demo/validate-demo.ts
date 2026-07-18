@@ -1,19 +1,29 @@
 import { existsSync, readFileSync } from "node:fs";
 
-const htmlPath = "examples/demo/index.html";
+const htmlPath = "demo-dist/index.html";
+const sourcePath = "examples/demo/src/main.tsx";
 const issues: string[] = [];
+const expectedBase = process.env.DEMO_BASE_PATH;
 
-if (!existsSync("dist/index.js")) issues.push("run npm run build first");
-if (!existsSync(htmlPath)) issues.push(`missing ${htmlPath}`);
+if (!existsSync(htmlPath)) issues.push("run npm run demo:build first");
+if (!existsSync(sourcePath)) issues.push(`missing ${sourcePath}`);
 
 if (existsSync(htmlPath)) {
   const html = readFileSync(htmlPath, "utf8");
-  if (!html.includes("../../dist/index.js"))
-    issues.push("demo must import the built public entry point");
-  if (!html.includes("LivingText"))
-    issues.push("demo must exercise the public LivingText API");
-  if (html.includes("../src/") && !html.includes("../../src/styles/eyslie.css"))
-    issues.push("demo must not import private source internals");
+  for (const text of ["Eyslie", "assets/"]) {
+    if (!html.includes(text)) issues.push(`built demo is missing ${text}`);
+  }
+  if (html.includes("esm.sh") || html.includes("unpkg.com"))
+    issues.push("demo must not use a CDN import map");
+  if (expectedBase && !html.includes(expectedBase))
+    issues.push(`built assets must use ${expectedBase}`);
+}
+
+if (existsSync(sourcePath)) {
+  const source = readFileSync(sourcePath, "utf8");
+  for (const text of ["LivingText", "../../../dist/index.js"]) {
+    if (!source.includes(text)) issues.push(`demo source is missing ${text}`);
+  }
 }
 
 if (issues.length > 0) {
@@ -21,4 +31,4 @@ if (issues.length > 0) {
   process.exit(1);
 }
 
-console.log("Eyslie demo is valid.");
+console.log("Eyslie demo build is valid.");
