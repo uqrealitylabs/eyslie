@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/uqrealitylabs/eyslie/compare/v0.2.0...v0.3.0) (2026-07-18)
+
+
+### Features
+
+* add showcase demo ([3f22ae8](https://github.com/uqrealitylabs/eyslie/commit/3f22ae8e58347e8ea5ee536113f2b41f26f75325))
+
+
+### Bug Fixes
+
+* handle demo clipboard failures ([5629ee3](https://github.com/uqrealitylabs/eyslie/commit/5629ee3b843d61dd790cfb3bfe54305aaf6fabc5))
+
 ## [0.2.0](https://github.com/uqrealitylabs/eyslie/compare/v0.1.0...v0.2.0) (2026-07-18)
 
 
