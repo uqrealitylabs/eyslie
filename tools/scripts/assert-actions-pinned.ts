@@ -2,6 +2,12 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const workflowRoot = ".github/workflows";
+const expectedWorkflows = [
+  "checks.yml",
+  "publish.yml",
+  "release.yml",
+  "security.yml",
+];
 const mutableRefs = new Set(["main", "master", "latest"]);
 const shaRef = /^[a-f0-9]{40}$/i;
 
@@ -13,8 +19,14 @@ function workflowFiles(root = workflowRoot) {
 
 export function findActionPinIssues(root = workflowRoot) {
   const issues: string[] = [];
+  const files = workflowFiles(root);
 
-  for (const file of workflowFiles(root)) {
+  const actual = files.map((file) => file.slice(root.length + 1)).sort();
+  if (actual.join() !== expectedWorkflows.join()) {
+    issues.push(`${root} must contain only: ${expectedWorkflows.join(", ")}`);
+  }
+
+  for (const file of files) {
     readFileSync(file, "utf8")
       .split(/\r?\n/)
       .forEach((line, index) => {
@@ -50,5 +62,5 @@ if (process.argv[1]?.endsWith("assert-actions-pinned.ts")) {
     console.error(issues.join("\n"));
     process.exit(1);
   }
-  console.log("Workflow actions are SHA-pinned.");
+  console.log("Workflow layout and action pins are valid.");
 }
