@@ -77,15 +77,6 @@
   );
 }
 
-.eyslie__letter[data-eye-role="secondary"][data-winking="true"]
-  .eyslie__inner-eye {
-  height: 0.06em;
-}
-
-.eyslie__letter[data-eye-role="secondary"][data-winking="true"] .eyslie__pupil {
-  opacity: 0;
-}
-
 .eyslie__thought {
   position: absolute;
   left: 50%;
@@ -130,13 +121,24 @@
   transform: translateX(50%) rotate(8deg);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .eyslie__pupil {
-    transform: translate(-50%, -50%);
+.eyslie[data-reduced-motion="true"] .eyslie__pupil {
+  transform: translate(-50%, -50%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .eyslie__letter[data-eye-role="secondary"][data-winking="true"]
+    .eyslie__inner-eye {
+    height: 0.06em;
   }
 
   .eyslie__letter[data-eye-role="secondary"][data-winking="true"]
-    .eyslie__inner-eye {
-    height: 0.35em;
+    .eyslie__pupil {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eyslie__pupil {
+    transform: translate(-50%, -50%);
   }
 }

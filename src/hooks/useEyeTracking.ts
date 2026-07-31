@@ -27,27 +27,29 @@ export function useEyeTracking(
       return;
     }
 
-    let frame = 0;
+    let frame: number | undefined;
     let point = { x: 0, y: 0 };
     const update = () => {
-      frame = 0;
+      frame = undefined;
       for (const element of targets()) {
+        const eye =
+          element.querySelector<HTMLElement>(".eyslie__inner-eye") ?? element;
         const offset = getPupilOffsetFromRect(
           point,
-          element.getBoundingClientRect(),
+          eye.getBoundingClientRect(),
         );
         setOffset(element, offset.x, offset.y);
       }
     };
     const onPointerMove = (event: PointerEvent) => {
       point = { x: event.clientX, y: event.clientY };
-      if (!frame) frame = window.requestAnimationFrame(update);
+      if (frame === undefined) frame = window.requestAnimationFrame(update);
     };
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
-      window.cancelAnimationFrame(frame);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
     };
   }, [options.disabled, ref]);
 }
