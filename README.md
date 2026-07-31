@@ -50,7 +50,7 @@ export function JoinButton() {
 
 ### Living Letters
 
-`splitTextLetters()` uses `Intl.Segmenter` so emoji, combining marks, flags, and joined glyphs stay intact. Select eye anchors by grapheme value or index.
+`splitTextLetters()` follows Unicode grapheme boundaries so emoji, combining marks, flags, and joined glyphs stay intact in every supported runtime. Select eye anchors by grapheme value or index.
 
 ### O Eye / U Eyelid
 

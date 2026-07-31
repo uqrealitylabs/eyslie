@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToString } from "react-dom/server";
 import { act, create } from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
@@ -14,6 +15,7 @@ import {
   LivingText,
   type LivingTextEvent,
   type LivingTextMood,
+  type LivingTextProps,
   livingTextMoods,
   nextLivingTextMood,
   shouldShowBlush,
@@ -74,6 +76,9 @@ describe("state and text", () => {
     ["🇦🇺", ["🇦🇺"]],
     ["👍🏽", ["👍🏽"]],
     ["👨‍👩‍👧‍👦", ["👨‍👩‍👧‍👦"]],
+    ["\r\n", ["\r\n"]],
+    ["\ud800", ["\ud800"]],
+    ["क्ष", ["क्ष"]],
   ])("segments graphemes in %s", (text, expected) => {
     expect(splitTextLetters(text)).toEqual(expected);
   });
@@ -190,19 +195,13 @@ describe("rendering", () => {
     expect(ThoughtBubble({ children: "yay" })).toMatchObject({
       props: { className: "eyslie__thought", "aria-hidden": "true" },
     });
-    expect(LetterEye({ letter: "O" }).props.style).toBeUndefined();
+    expect("style" in LetterEye({ letter: "O" }).props).toBe(false);
     expect(
-      LetterEye({
-        letter: "U",
-        eyeRole: "secondary",
-        pupilOffset: { x: 1, y: 2 },
-        winking: true,
-      }),
+      LetterEye({ letter: "U", eyeRole: "secondary", winking: true }),
     ).toMatchObject({
       props: {
         "data-eye-role": "secondary",
         "data-winking": "true",
-        style: { "--eyslie-pupil-x": "1px", "--eyslie-pupil-y": "2px" },
       },
     });
   });
@@ -218,6 +217,7 @@ describe("rendering", () => {
       0,
     ],
     [{ text: "join us", eyeLetters: { primary: "O", secondary: "u" } }, 2],
+    [{ text: "e\u0301", eyeLetters: { primary: "É" } }, 1],
     [{ text: "" }, 0],
   ])("renders valid eye anchors for $0", (props, eyeCount) => {
     const html = renderToString(<LivingText {...props} />);
@@ -247,89 +247,145 @@ describe("rendering", () => {
     expect(server).toContain("demo");
     expect(server).toContain("rebeccapurple");
   });
+
+  it.each([
+    [{ text: "" }, undefined],
+    [{ text: " \n\t" }, undefined],
+    [{ text: "JOIN US" }, "JOIN US"],
+    [{ text: "JOIN US", ariaLabel: "  " }, "JOIN US"],
+    [{ text: "", ariaLabel: "Living letters" }, "Living letters"],
+  ] as Array<[LivingTextProps, string | undefined]>)(
+    "uses accessible semantics for $0",
+    (props, label) => {
+      const html = renderToString(<LivingText {...props} />);
+      if (label) {
+        expect(html).toContain('role="img"');
+        expect(html).toContain(`aria-label="${label}"`);
+        expect(html).not.toMatch(/^<span class="eyslie" aria-hidden="true"/);
+      } else {
+        expect(html).not.toContain('role="img"');
+        expect(html).not.toContain("aria-label=");
+        expect(html).toMatch(/^<span class="eyslie" aria-hidden="true"/);
+      }
+    },
+  );
 });
 
 describe("browser hooks", () => {
-  it("coalesces pointer bursts and measures each eye", () => {
-    const previousWindow = globalThis.window;
-    const listeners = new Map<string, (event: PointerEvent) => void>();
-    const frames: FrameRequestCallback[] = [];
-    const cancelAnimationFrame = vi.fn();
-    globalThis.window = {
-      addEventListener: (type: string, listener: EventListener) =>
-        listeners.set(type, listener as (event: PointerEvent) => void),
-      removeEventListener: (type: string) => listeners.delete(type),
-      requestAnimationFrame: (callback: FrameRequestCallback) => {
-        frames.push(callback);
-        return frames.length;
-      },
-      cancelAnimationFrame,
-    } as unknown as Window & typeof globalThis;
+  it.each([0, 1])(
+    "coalesces pointer bursts for animation frame ID %i",
+    (frameId) => {
+      const previousWindow = globalThis.window;
+      const listeners = new Map<string, (event: PointerEvent) => void>();
+      const frames: FrameRequestCallback[] = [];
+      const cancelAnimationFrame = vi.fn();
+      globalThis.window = {
+        addEventListener: (type: string, listener: EventListener) =>
+          listeners.set(type, listener as (event: PointerEvent) => void),
+        removeEventListener: (type: string) => listeners.delete(type),
+        requestAnimationFrame: (callback: FrameRequestCallback) => {
+          frames.push(callback);
+          return frameId;
+        },
+        cancelAnimationFrame,
+      } as unknown as Window & typeof globalThis;
 
-    const makeEye = (left: number) => ({
-      style: { setProperty: vi.fn() },
-      getBoundingClientRect: vi.fn(() => ({
-        left,
-        top: 0,
-        width: 20,
-        height: 16,
-      })),
-    });
-    const eyes = [makeEye(0), makeEye(30)];
-    const root = {
-      style: { setProperty: vi.fn() },
-      querySelectorAll: () => eyes,
-    } as unknown as HTMLElement;
-    const ref = { current: root };
+      const makeEye = (left: number, hasInnerEye: boolean) => {
+        const innerEye = hasInnerEye
+          ? {
+              getBoundingClientRect: vi.fn(() => ({
+                left,
+                top: 0,
+                width: 12,
+                height: 8,
+              })),
+            }
+          : null;
+        return {
+          innerEye,
+          style: { setProperty: vi.fn() },
+          querySelector: () => innerEye,
+          getBoundingClientRect: vi.fn(() => ({
+            left,
+            top: 0,
+            width: 20,
+            height: 16,
+          })),
+        };
+      };
+      const eyes = [makeEye(0, true), makeEye(30, false)];
+      const root = {
+        style: { setProperty: vi.fn() },
+        querySelectorAll: () => eyes,
+      } as unknown as HTMLElement;
+      const ref = { current: root };
 
-    function Host({ disabled = false }: { disabled?: boolean }) {
-      useEyeTracking(ref, { disabled });
-      return null;
-    }
+      function Host({ disabled = false }: { disabled?: boolean }) {
+        useEyeTracking(ref, { disabled });
+        return null;
+      }
 
-    let renderer: ReturnType<typeof create> | undefined;
-    act(() => {
-      renderer = create(<Host />);
-    });
-    listeners.get("pointermove")?.({ clientX: 50, clientY: 8 } as PointerEvent);
-    listeners.get("pointermove")?.({ clientX: 40, clientY: 8 } as PointerEvent);
-    expect(frames).toHaveLength(1);
-    frames.shift()?.(0);
-    for (const eye of eyes) {
-      expect(eye.getBoundingClientRect).toHaveBeenCalledTimes(1);
-      expect(eye.style.setProperty).toHaveBeenCalledWith(
+      let renderer: ReturnType<typeof create> | undefined;
+      act(() => {
+        renderer = create(<Host />);
+      });
+      listeners.get("pointermove")?.({
+        clientX: 50,
+        clientY: 8,
+      } as PointerEvent);
+      listeners.get("pointermove")?.({
+        clientX: 40,
+        clientY: 8,
+      } as PointerEvent);
+      expect(frames).toHaveLength(1);
+      frames.shift()?.(0);
+      for (const eye of eyes) {
+        expect(
+          eye.innerEye?.getBoundingClientRect ?? eye.getBoundingClientRect,
+        ).toHaveBeenCalledTimes(1);
+        expect(eye.style.setProperty).toHaveBeenCalledWith(
+          "--eyslie-pupil-x",
+          expect.stringContaining("px"),
+        );
+      }
+      listeners.get("pointermove")?.({
+        clientX: 10,
+        clientY: 8,
+      } as PointerEvent);
+      act(() => renderer?.unmount());
+      expect(cancelAnimationFrame).toHaveBeenCalledWith(frameId);
+      expect(listeners.has("pointermove")).toBe(false);
+
+      act(() => {
+        renderer = create(<Host />);
+      });
+      act(() => renderer?.unmount());
+      expect(cancelAnimationFrame).toHaveBeenCalledTimes(1);
+
+      const rootOnly = {
+        style: { setProperty: vi.fn() },
+        querySelectorAll: () => [],
+      } as unknown as HTMLElement;
+      function RootOnlyHost() {
+        useEyeTracking({ current: rootOnly }, { disabled: true });
+        return null;
+      }
+      function NullHost() {
+        useEyeTracking({ current: null }, { disabled: true });
+        return null;
+      }
+      act(() => {
+        create(<Host disabled />);
+        create(<RootOnlyHost />);
+        create(<NullHost />);
+      });
+      expect(rootOnly.style.setProperty).toHaveBeenCalledWith(
         "--eyslie-pupil-x",
-        expect.stringContaining("px"),
+        "0px",
       );
-    }
-    listeners.get("pointermove")?.({ clientX: 10, clientY: 8 } as PointerEvent);
-    act(() => renderer?.unmount());
-    expect(cancelAnimationFrame).toHaveBeenCalled();
-    expect(listeners.has("pointermove")).toBe(false);
-
-    const rootOnly = {
-      style: { setProperty: vi.fn() },
-      querySelectorAll: () => [],
-    } as unknown as HTMLElement;
-    function RootOnlyHost() {
-      useEyeTracking({ current: rootOnly }, { disabled: true });
-      return null;
-    }
-    function NullHost() {
-      useEyeTracking({ current: null }, { disabled: true });
-      return null;
-    }
-    act(() => {
-      create(<Host disabled />);
-      create(<RootOnlyHost />);
-      create(<NullHost />);
-    });
-    expect(rootOnly.style.setProperty).toHaveBeenCalledWith(
-      "--eyslie-pupil-x",
-      "0px",
-    );
-    globalThis.window = previousWindow;
-  });
+      globalThis.window = previousWindow;
+    },
+  );
 
   it("tracks proximity transitions and resets when disabled", () => {
     const previousWindow = globalThis.window;
@@ -397,5 +453,23 @@ describe("browser hooks", () => {
       create(<DefaultHost />);
     });
     act(() => renderer?.unmount());
+  });
+});
+
+describe("motion styles", () => {
+  const css = readFileSync("src/styles/eyslie.css", "utf8");
+  const noPreference = css.slice(
+    css.indexOf("@media (prefers-reduced-motion: no-preference)"),
+    css.indexOf("@media (prefers-reduced-motion: reduce)"),
+  );
+  const reduced = css.slice(
+    css.indexOf("@media (prefers-reduced-motion: reduce)"),
+  );
+
+  it("only renders winks when motion is allowed", () => {
+    expect(noPreference).toContain('data-winking="true"');
+    expect(noPreference).toContain("height: 0.06em");
+    expect(noPreference).toContain("opacity: 0");
+    expect(reduced).not.toContain("data-winking");
   });
 });

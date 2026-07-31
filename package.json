@@ -89,5 +89,8 @@
   },
   "engines": {
     "node": ">=20.19"
+  },
+  "dependencies": {
+    "unicode-segmenter": "0.17.3"
   }
 }

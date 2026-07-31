@@ -61,6 +61,7 @@ export function LivingText({
   const secondaryIndex = findLetterIndex(letters, eyeLetters.secondary);
   const hasPrimary = primaryIndex >= 0;
   const hasSecondary = secondaryIndex >= 0 && secondaryIndex !== primaryIndex;
+  const label = ariaLabel?.trim() ? ariaLabel : text.trim() ? text : undefined;
   useEyeTracking(rootRef, {
     disabled: reducedMotion || (!hasPrimary && !hasSecondary),
   });
@@ -81,8 +82,9 @@ export function LivingText({
     <span
       ref={rootRef}
       className={["eyslie", className].filter(Boolean).join(" ")}
-      role="img"
-      aria-label={ariaLabel ?? text}
+      {...(label
+        ? { role: "img", "aria-label": label }
+        : { "aria-hidden": "true" })}
       data-mood={mood}
       data-reduced-motion={reducedMotion ? "true" : "false"}
       style={cssVars}
@@ -128,7 +130,14 @@ function findLetterIndex(
       ? selector
       : -1;
   }
+  const lowerSelector = selector.toLowerCase();
+  if (/^\p{ASCII}*$/u.test(selector)) {
+    return letters.findIndex(
+      (letter) => letter.toLowerCase() === lowerSelector,
+    );
+  }
+  const normalizedSelector = selector.normalize("NFC").toLowerCase();
   return letters.findIndex(
-    (letter) => letter.toLowerCase() === selector.toLowerCase(),
+    (letter) => letter.normalize("NFC").toLowerCase() === normalizedSelector,
   );
 }

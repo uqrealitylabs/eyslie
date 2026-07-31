@@ -1,3 +1,5 @@
+import { collectGraphemes } from "unicode-segmenter/grapheme";
+
 export const livingTextMoods = {
   idleCurious: "idleCurious",
   nearStartled: "nearStartled",
@@ -31,13 +33,11 @@ export const defaultThoughts: Partial<Record<LivingTextMood, string>> = {
   recovery: "aw.",
 };
 
-const graphemeSegmenter = new Intl.Segmenter(undefined, {
-  granularity: "grapheme",
-});
-
 export function splitTextLetters(text: string) {
-  if (/^\p{ASCII}*$/u.test(text)) return text.split("");
-  return Array.from(graphemeSegmenter.segment(text), ({ segment }) => segment);
+  if (/^\p{ASCII}*$/u.test(text) && !text.includes("\r\n")) {
+    return text.split("");
+  }
+  return collectGraphemes(text);
 }
 
 export function shouldShowBlush(elapsedMs: number) {
