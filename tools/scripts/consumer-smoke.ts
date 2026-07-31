@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
-  readFileSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -11,28 +11,17 @@ import { join } from "node:path";
 
 const root = process.cwd();
 const scratch = mkdtempSync(join(tmpdir(), "eyslie-consumer-"));
-const { devDependencies } = JSON.parse(
-  readFileSync("package.json", "utf8"),
-) as { devDependencies: Record<string, string> };
+process.on("exit", () => rmSync(scratch, { recursive: true, force: true }));
 const filename = execFileSync(
   "npm",
-  [
-    "pack",
-    "--silent",
-    "--ignore-scripts",
-    "--pack-destination",
-    scratch,
-    "--cache",
-    join(scratch, "cache"),
-  ],
+  ["pack", "--silent", "--ignore-scripts", "--pack-destination", scratch],
   { cwd: root, encoding: "utf8" },
 ).trim();
 const tarball = join(scratch, filename);
+const reactVersions = ["18.3.1", "19.2.8"];
 
-for (const reactVersion of [
-  "18.3.1",
-  devDependencies.react.replace(/^\D+/, ""),
-]) {
+for (const [index, reactVersion] of reactVersions.entries()) {
+  const isLatest = index === reactVersions.length - 1;
   const consumer = join(scratch, `react-${reactVersion}`);
   mkdirSync(consumer);
   writeFileSync(
@@ -44,40 +33,101 @@ for (const reactVersion of [
     [
       "install",
       "--ignore-scripts",
-      "--cache",
-      join(scratch, "cache"),
       tarball,
       `react@${reactVersion}`,
       `react-dom@${reactVersion}`,
+      "jsdom@26.1.0",
+      ...(isLatest ? ["typescript@5.9.3"] : []),
     ],
     { cwd: consumer, stdio: "inherit" },
   );
-  execFileSync(
-    "node",
+  const smoke = join(consumer, "smoke.mjs");
+  writeFileSync(
+    smoke,
     [
-      "--input-type=module",
-      "--eval",
+      'import React, { act } from "react";',
+      'import { renderToString } from "react-dom/server";',
+      'import { JSDOM } from "jsdom";',
+      'import { LivingText } from "@uqrealitylabs/eyslie";',
+      "const cases = [",
+      '  ["default", { text: "JOIN US" }],',
+      '  ["unicode", { text: "O e\\u0301 🇦🇺 U", ariaLabel: "Unicode eyes", className: "demo", mood: "blush", thoughts: { blush: "hello" }, style: { color: "rebeccapurple" }, reducedMotion: true, eyeLetters: { primary: "É", secondary: "U" } }],',
+      '  ["empty", { text: "" }],',
+      '  ["whitespace", { text: " \\n\\t" }],',
+      '  ["invalid anchors", { text: "JOIN US", eyeLetters: { primary: -1, secondary: 99 } }],',
+      '  ["extreme seed", { text: "JOIN US", seed: Number.MAX_VALUE }],',
+      "];",
+      "const rendered = cases.map(([name, props]) => [name, props, renderToString(React.createElement(LivingText, props))]);",
+      'const dom = new JSDOM("<!doctype html><div id=\\"root\\"></div>", { pretendToBeVisual: true });',
+      "globalThis.window = dom.window;",
+      "globalThis.document = dom.window.document;",
+      "globalThis.IS_REACT_ACT_ENVIRONMENT = true;",
+      "const failures = [];",
+      "const originalError = console.error;",
+      "const originalWarn = console.warn;",
+      'console.error = console.warn = (...args) => failures.push(args.map(String).join(" "));',
+      'const { hydrateRoot } = await import("react-dom/client");',
+      "try {",
+      "  for (const [name, props, html] of rendered) {",
+      "    const element = React.createElement(LivingText, props);",
+      '    const container = document.getElementById("root");',
+      "    container.innerHTML = html;",
+      "    let root;",
+      "    await act(() => {",
+      "      root = hydrateRoot(container, element, {",
+      '        onRecoverableError: (error) => failures.push(name + ": " + String(error)),',
+      "      });",
+      "    });",
+      "    await act(() => root.unmount());",
+      "  }",
+      "} finally {",
+      "  console.error = originalError;",
+      "  console.warn = originalWarn;",
+      "  dom.window.close();",
+      "}",
+      'if (failures.length) throw new Error("Hydration failed:\\n" + failures.join("\\n"));',
+    ].join("\n"),
+  );
+  execFileSync("node", [smoke], { cwd: consumer, stdio: "inherit" });
+  if (isLatest) {
+    const types = join(consumer, "types.ts");
+    writeFileSync(
+      types,
       [
-        'import React from "react";',
-        'import { renderToString } from "react-dom/server";',
-        'import { LivingText, getOrganicWinkDelayMs } from "@uqrealitylabs/eyslie";',
-        'const html = renderToString(React.createElement(LivingText, { text: "JOIN US", reducedMotion: true }));',
-        `if (!html.includes('aria-label="JOIN US"')) throw new Error("SSR render broken");`,
-        'if ((html.match(/data-eye-role/g) ?? []).length !== 2) throw new Error("eye render broken");',
-        "if (getOrganicWinkDelayMs(1, 0) < 2600) throw new Error('wink export broken');",
+        'import { LivingText, type LivingTextProps } from "@uqrealitylabs/eyslie";',
+        'const props: LivingTextProps = { text: "JOIN US" };',
+        "void [LivingText, props];",
       ].join("\n"),
-    ],
-    { cwd: consumer, stdio: "inherit" },
-  );
-  statSync(
-    join(
-      consumer,
-      "node_modules",
-      "@uqrealitylabs",
-      "eyslie",
-      "src",
-      "styles",
-      "eyslie.css",
-    ),
-  );
+    );
+    for (const resolution of ["node", "bundler"]) {
+      execFileSync(
+        process.execPath,
+        [
+          join(consumer, "node_modules", "typescript", "bin", "tsc"),
+          types,
+          "--module",
+          "ESNext",
+          "--moduleResolution",
+          resolution,
+          "--target",
+          "ES2022",
+          "--strict",
+          "--skipLibCheck",
+          "--noEmit",
+        ],
+        { cwd: consumer, stdio: "inherit" },
+      );
+    }
+    statSync(
+      join(
+        consumer,
+        "node_modules",
+        "@uqrealitylabs",
+        "eyslie",
+        "src",
+        "styles",
+        "eyslie.css",
+      ),
+    );
+  }
 }

@@ -224,28 +224,24 @@ describe("rendering", () => {
     expect(html.match(/data-eye-role/g) ?? []).toHaveLength(eyeCount);
   });
 
-  it("keeps SSR and the first browser render identical", () => {
-    const props = {
-      text: "O e\u0301 🇦🇺 U",
-      ariaLabel: "Unicode eyes",
-      className: "demo",
-      mood: livingTextMoods.blush,
-      thoughts: { blush: "hello" },
-      style: { color: "rebeccapurple" },
-      reducedMotion: true,
-    } as const;
-    const server = renderToString(<LivingText {...props} />);
-    const previousWindow = globalThis.window;
-    globalThis.window = {} as Window & typeof globalThis;
-    const browser = renderToString(<LivingText {...props} />);
-    globalThis.window = previousWindow;
+  it("renders custom props in SSR", () => {
+    const html = renderToString(
+      <LivingText
+        text="O e\u0301 🇦🇺 U"
+        ariaLabel="Unicode eyes"
+        className="demo"
+        mood={livingTextMoods.blush}
+        thoughts={{ blush: "hello" }}
+        style={{ color: "rebeccapurple" }}
+        reducedMotion
+      />,
+    );
 
-    expect(browser).toBe(server);
-    expect(server).toContain('aria-label="Unicode eyes"');
-    expect(server).toContain("eyslie__blush");
-    expect(server).toContain("hello");
-    expect(server).toContain("demo");
-    expect(server).toContain("rebeccapurple");
+    expect(html).toContain('aria-label="Unicode eyes"');
+    expect(html).toContain("eyslie__blush");
+    expect(html).toContain("hello");
+    expect(html).toContain("demo");
+    expect(html).toContain("rebeccapurple");
   });
 
   it.each([

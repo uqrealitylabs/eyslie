@@ -20,6 +20,8 @@ Do not use it for long paragraphs, layout-heavy navigation, or anything that mus
 npm install @uqrealitylabs/eyslie
 ```
 
+The package is ESM-only. Repository scripts require Node.js 22.18 or newer.
+
 ```tsx
 import { LivingText } from "@uqrealitylabs/eyslie";
 import "@uqrealitylabs/eyslie/styles.css";
