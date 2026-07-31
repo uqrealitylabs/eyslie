@@ -17,6 +17,8 @@
   "publishConfig": {
     "access": "public"
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -37,11 +39,11 @@
     "format:check": "biome format .",
     "test": "npm run test:coverage",
     "test:unit": "vitest run --config tools/config/vitest.config.ts",
-    "test:ci": "npm run repo:check && npm run typecheck && npm run lint && npm run format:check && npm run test:coverage && npm run build && npm run test:consumer && npm run package:check && npm run demo:build && npm run test:demo",
+    "test:ci": "npm run repo:check && npm run typecheck && npm run lint && npm run format:check && npm run test:coverage && npm run demo:build && npm run test:demo && npm run test:consumer && npm run package:check",
     "test:coverage": "vitest run --config tools/config/vitest.config.ts --coverage.enabled true",
     "prebuild": "rm -rf dist",
     "build": "tsc -p tools/config/tsconfig.build.json",
-    "demo:dev": "npm run demo:build && vite --config tools/config/demo-vite.config.ts",
+    "demo:dev": "npm run build && vite --config tools/config/demo-vite.config.ts",
     "demo:build": "npm run build && npm run demo:typecheck:built && vite build --config tools/config/demo-vite.config.ts && cp examples/demo/src/assets/OFL.txt demo-dist/OFL.txt",
     "demo:preview": "npm run demo:build && vite preview --config tools/config/demo-vite.config.ts",
     "demo:typecheck:built": "tsc --noEmit --project tools/config/tsconfig.demo.json",
@@ -88,7 +90,7 @@
     "vitest": "^4.0.16"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.18"
   },
   "dependencies": {
     "unicode-segmenter": "0.17.3"
