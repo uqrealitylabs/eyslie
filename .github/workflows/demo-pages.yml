@@ -37,8 +37,8 @@ jobs:
           npm run lint
           npm run format:check
           npm run test:coverage
-          DEMO_BASE_PATH=/project/eyslie/ npm run demo:build
-          DEMO_BASE_PATH=/project/eyslie/ npm run test:demo
+          DEMO_BASE_PATH=/eyslie/ npm run demo:build
+          DEMO_BASE_PATH=/eyslie/ npm run test:demo
           mkdir -p artifacts
           cp -R demo-dist/. artifacts/
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0

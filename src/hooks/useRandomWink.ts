@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 const WINK_DURATION_MS = 160;
 
 export function getOrganicWinkDelayMs(seed: number, winkIndex: number) {
+  const safeSeed = Number.isFinite(seed) ? seed % 1_000_000 : 1;
+  const safeIndex = Number.isFinite(winkIndex) ? winkIndex % 1_000_000 : 0;
   const value =
-    Math.sin((seed + 1) * 12.9898 + winkIndex * 78.233) * 43758.5453;
+    Math.sin((safeSeed + 1) * 12.9898 + safeIndex * 78.233) * 43758.5453;
   const unit = value - Math.floor(value);
 
   return Math.round(2600 + unit * 3600);
@@ -17,7 +19,6 @@ export function createWinkSchedule(seed: number) {
 export function useRandomWink(options: {
   seed?: number | undefined;
   disabled?: boolean | undefined;
-  testMode?: boolean | undefined;
 }) {
   const seed = options.seed ?? 1;
   const [winkIndex, setWinkIndex] = useState(0);
@@ -25,25 +26,23 @@ export function useRandomWink(options: {
   const schedule = useMemo(() => createWinkSchedule(seed), [seed]);
 
   useEffect(() => {
-    if (options.disabled || options.testMode || typeof window === "undefined") {
+    if (options.disabled || typeof window === "undefined") {
       setIsWinking(false);
       return;
     }
 
-    const delay = schedule(winkIndex);
-    const timer = window.setTimeout(() => {
-      setIsWinking(true);
-      setWinkIndex((current) => current + 1);
-    }, delay);
-    const resetTimer = isWinking
-      ? window.setTimeout(() => setIsWinking(false), WINK_DURATION_MS)
-      : undefined;
+    const timer = window.setTimeout(
+      isWinking
+        ? () => setIsWinking(false)
+        : () => {
+            setIsWinking(true);
+            setWinkIndex((current) => current + 1);
+          },
+      isWinking ? WINK_DURATION_MS : schedule(winkIndex),
+    );
 
-    return () => {
-      window.clearTimeout(timer);
-      if (resetTimer !== undefined) window.clearTimeout(resetTimer);
-    };
-  }, [isWinking, options.disabled, options.testMode, schedule, winkIndex]);
+    return () => window.clearTimeout(timer);
+  }, [isWinking, options.disabled, schedule, winkIndex]);
 
   return {
     isWinking: !options.disabled && isWinking,

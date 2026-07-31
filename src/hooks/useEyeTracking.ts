@@ -8,9 +8,18 @@ export function useEyeTracking(
   } = {},
 ) {
   useEffect(() => {
+    const targets = () => {
+      const root = ref.current;
+      if (!root) return [];
+      const eyes = root.querySelectorAll<HTMLElement>("[data-eye-role]");
+      return eyes.length ? eyes : [root];
+    };
+    const setOffset = (element: HTMLElement, x: number, y: number) => {
+      element.style.setProperty("--eyslie-pupil-x", `${x}px`);
+      element.style.setProperty("--eyslie-pupil-y", `${y}px`);
+    };
     const reset = () => {
-      ref.current?.style.setProperty("--eyslie-pupil-x", "0px");
-      ref.current?.style.setProperty("--eyslie-pupil-y", "0px");
+      for (const element of targets()) setOffset(element, 0, 0);
     };
 
     if (options.disabled || typeof window === "undefined") {
@@ -18,18 +27,27 @@ export function useEyeTracking(
       return;
     }
 
+    let frame = 0;
+    let point = { x: 0, y: 0 };
+    const update = () => {
+      frame = 0;
+      for (const element of targets()) {
+        const offset = getPupilOffsetFromRect(
+          point,
+          element.getBoundingClientRect(),
+        );
+        setOffset(element, offset.x, offset.y);
+      }
+    };
     const onPointerMove = (event: PointerEvent) => {
-      const element = ref.current;
-      if (!element) return;
-      const offset = getPupilOffsetFromRect(
-        { x: event.clientX, y: event.clientY },
-        element.getBoundingClientRect(),
-      );
-      element.style.setProperty("--eyslie-pupil-x", `${offset.x}px`);
-      element.style.setProperty("--eyslie-pupil-y", `${offset.y}px`);
+      point = { x: event.clientX, y: event.clientY };
+      if (!frame) frame = window.requestAnimationFrame(update);
     };
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onPointerMove);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.cancelAnimationFrame(frame);
+    };
   }, [options.disabled, ref]);
 }
