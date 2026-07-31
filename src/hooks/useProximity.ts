@@ -12,11 +12,12 @@ export function isPointerNear(
   point: { x: number; y: number },
   radius: number,
 ) {
+  const safeRadius = Number.isFinite(radius) ? Math.max(0, radius) : 0;
   return (
-    point.x >= rect.left - radius &&
-    point.x <= rect.right + radius &&
-    point.y >= rect.top - radius &&
-    point.y <= rect.bottom + radius
+    point.x >= rect.left - safeRadius &&
+    point.x <= rect.right + safeRadius &&
+    point.y >= rect.top - safeRadius &&
+    point.y <= rect.bottom + safeRadius
   );
 }
 
@@ -32,17 +33,21 @@ export function useProximity(
   const radius = options.radius ?? 80;
 
   useEffect(() => {
-    if (options.disabled) return;
+    if (options.disabled || typeof window === "undefined") {
+      nearRef.current = false;
+      setNear(false);
+      return;
+    }
 
     const onPointerMove = (event: PointerEvent) => {
       const element = ref.current;
-      if (!element) return;
-      const rect = element.getBoundingClientRect();
-      const nextNear = isPointerNear(
-        rect,
-        { x: event.clientX, y: event.clientY },
-        radius,
-      );
+      const nextNear = element
+        ? isPointerNear(
+            element.getBoundingClientRect(),
+            { x: event.clientX, y: event.clientY },
+            radius,
+          )
+        : false;
       if (nearRef.current === nextNear) return;
 
       nearRef.current = nextNear;
@@ -53,5 +58,5 @@ export function useProximity(
     return () => window.removeEventListener("pointermove", onPointerMove);
   }, [options.disabled, radius, ref]);
 
-  return near;
+  return options.disabled ? false : near;
 }

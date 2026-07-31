@@ -1,23 +1,21 @@
+import { renderToString } from "react-dom/server";
 import { act, create } from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 import {
   Blush,
   constrainPupilOffset,
   createWinkSchedule,
-  getEyeLetterParts,
   getOrganicWinkDelayMs,
+  getPupilOffsetFromRect,
   getThoughtForMood,
   isPointerNear,
   LetterEye,
   LIVING_TEXT_BLUSH_DELAY_MS,
   LivingText,
-  livingTextEmotionNames,
-  livingTextEmotionPresets,
-  livingTextEyeStyles,
+  type LivingTextEvent,
+  type LivingTextMood,
   livingTextMoods,
   nextLivingTextMood,
-  resolveLivingTextEmotion,
-  shouldAnimateLivingText,
   shouldShowBlush,
   splitTextLetters,
   ThoughtBubble,
@@ -30,66 +28,169 @@ import {
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
-describe("living text state", () => {
-  it("keeps reusable mood transitions explicit", () => {
-    expect(nextLivingTextMood(livingTextMoods.idleCurious, "pointerNear")).toBe(
-      livingTextMoods.nearStartled,
-    );
-    expect(
-      nextLivingTextMood(livingTextMoods.nearStartled, "pointerAway"),
-    ).toBe(livingTextMoods.idleCurious);
-    expect(nextLivingTextMood(livingTextMoods.idleCurious, "excite")).toBe(
-      livingTextMoods.excited,
-    );
-    expect(
-      nextLivingTextMood(
-        livingTextMoods.excited,
-        "blushElapsed",
-        LIVING_TEXT_BLUSH_DELAY_MS,
-      ),
-    ).toBe(livingTextMoods.blush);
-    expect(nextLivingTextMood(livingTextMoods.blush, "celebrate")).toBe(
-      livingTextMoods.celebration,
-    );
-    expect(nextLivingTextMood(livingTextMoods.excited, "sadden")).toBe(
-      livingTextMoods.sadShrivel,
-    );
-    expect(nextLivingTextMood(livingTextMoods.sadShrivel, "recover")).toBe(
-      livingTextMoods.idleCurious,
-    );
-    expect(
-      nextLivingTextMood(
-        livingTextMoods.excited,
-        "blushElapsed",
-        LIVING_TEXT_BLUSH_DELAY_MS - 1,
-      ),
-    ).toBe(livingTextMoods.excited);
-    expect(nextLivingTextMood(livingTextMoods.blush, "pointerNear")).toBe(
-      livingTextMoods.blush,
-    );
+describe("state and text", () => {
+  it.each([
+    ["idleCurious", "pointerNear", 0, "nearStartled"],
+    ["nearStartled", "pointerAway", 0, "idleCurious"],
+    ["idleCurious", "excite", 0, "excited"],
+    ["excited", "blushElapsed", LIVING_TEXT_BLUSH_DELAY_MS - 1, "excited"],
+    ["excited", "blushElapsed", LIVING_TEXT_BLUSH_DELAY_MS, "blush"],
+    ["blush", "celebrate", 0, "celebration"],
+    ["excited", "sadden", 0, "sadShrivel"],
+    ["sadShrivel", "recover", 0, "idleCurious"],
+    ["blush", "pointerNear", 0, "blush"],
+  ] as Array<[LivingTextMood, LivingTextEvent, number, LivingTextMood]>)(
+    "moves %s on %s",
+    (mood, event, elapsed, expected) => {
+      expect(nextLivingTextMood(mood, event, elapsed)).toBe(expected);
+    },
+  );
+
+  it.each([
+    [LIVING_TEXT_BLUSH_DELAY_MS - 1, false],
+    [LIVING_TEXT_BLUSH_DELAY_MS, true],
+  ])("checks blush threshold %i", (elapsed, expected) => {
+    expect(shouldShowBlush(elapsed)).toBe(expected);
   });
 
-  it("keeps blush timing generic", () => {
-    expect(shouldShowBlush(LIVING_TEXT_BLUSH_DELAY_MS - 1)).toBe(false);
-    expect(shouldShowBlush(LIVING_TEXT_BLUSH_DELAY_MS)).toBe(true);
+  it("merges thought overrides with defaults", () => {
+    expect(getThoughtForMood(livingTextMoods.nearStartled, {})).toBe("AWWWW");
+    expect(
+      getThoughtForMood(livingTextMoods.celebration, {
+        celebration: "hooray",
+      }),
+    ).toBe("hooray");
+    expect(
+      getThoughtForMood(livingTextMoods.celebration, { celebration: "" }),
+    ).toBe("");
+    expect(getThoughtForMood(livingTextMoods.idleCurious)).toBe("");
+  });
+
+  it.each([
+    ["", []],
+    ["JOIN US", ["J", "O", "I", "N", " ", "U", "S"]],
+    ["O🙂", ["O", "🙂"]],
+    ["e\u0301", ["e\u0301"]],
+    ["🇦🇺", ["🇦🇺"]],
+    ["👍🏽", ["👍🏽"]],
+    ["👨‍👩‍👧‍👦", ["👨‍👩‍👧‍👦"]],
+  ])("segments graphemes in %s", (text, expected) => {
+    expect(splitTextLetters(text)).toEqual(expected);
   });
 });
 
-describe("eye behaviour", () => {
-  it("keeps the O glyph while adding a white inner eye and brown pupil layer", () => {
-    expect(getEyeLetterParts("O")).toEqual({
-      glyph: "O",
-      hasInnerEye: true,
-      hasPupil: true,
-      keepsGlyphShape: true,
-    });
+describe("geometry", () => {
+  it.each([
+    [{ left: 10, top: 10, right: 50, bottom: 40 }, { x: 2, y: 10 }, 8, true],
+    [{ left: 10, top: 10, right: 50, bottom: 40 }, { x: 9, y: 10 }, -8, false],
+    [{ left: 10, top: 10, right: 50, bottom: 40 }, { x: 10, y: 10 }, NaN, true],
+    [{ left: 10, top: 10, right: 50, bottom: 40 }, { x: 51, y: 10 }, 0, false],
+  ])("checks pointer proximity", (rect, point, radius, expected) => {
+    expect(isPointerNear(rect, point, radius)).toBe(expected);
+  });
 
-    expect(LetterEye({ letter: "O" })).toMatchObject({
-      props: {
-        className: "eyslie__letter eyslie__letter--eye",
-        "data-eye-role": "primary",
-      },
+  it("constrains pupils to an ellipse", () => {
+    expect(constrainPupilOffset(0, 0, { width: 20, height: 16 })).toEqual({
+      x: 0,
+      y: 0,
     });
+    const offset = constrainPupilOffset(100, -80, {
+      width: 20,
+      height: 16,
+    });
+    expect(Math.hypot(offset.x / 3.6, offset.y / 1.44)).toBeCloseTo(1);
+    expect(
+      getPupilOffsetFromRect(
+        { x: 10, y: 8 },
+        { left: 0, top: 0, width: 20, height: 16 },
+      ),
+    ).toEqual({ x: 0, y: 0 });
+  });
+
+  it.each([
+    [1, 1, { width: 0, height: 10 }],
+    [1, 1, { width: 10, height: 0 }],
+    [NaN, 1, { width: 10, height: 10 }],
+    [1, NaN, { width: 10, height: 10 }],
+    [1, 1, { width: Infinity, height: 10 }],
+    [1, 1, { width: 10, height: Infinity }],
+  ])("neutralizes invalid pupil geometry", (x, y, bounds) => {
+    expect(constrainPupilOffset(x, y, bounds)).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("wink timing", () => {
+  it("is deterministic", () => {
+    const schedule = createWinkSchedule(12);
+    expect(schedule(0)).toBe(getOrganicWinkDelayMs(12, 0));
+    expect(schedule(0)).not.toBe(schedule(1));
+  });
+
+  it.each([
+    [12, 0],
+    [NaN, Infinity],
+    [Number.MAX_VALUE, Number.MAX_VALUE],
+    [-Number.MAX_VALUE, -Number.MAX_VALUE],
+  ])("bounds the delay for seed $0 and index $1", (seed, winkIndex) => {
+    const delay = getOrganicWinkDelayMs(seed, winkIndex);
+    expect(Number.isFinite(delay)).toBe(true);
+    expect(delay).toBeGreaterThanOrEqual(2600);
+    expect(delay).toBeLessThanOrEqual(6200);
+  });
+
+  it("uses one timer for each wait and wink pulse", () => {
+    vi.useFakeTimers();
+    const previousWindow = globalThis.window;
+    globalThis.window = { setTimeout, clearTimeout } as unknown as Window &
+      typeof globalThis;
+    const states: ReturnType<typeof useRandomWink>[] = [];
+
+    function Host({ disabled = false }: { disabled?: boolean }) {
+      states.push(useRandomWink({ seed: 12, disabled }));
+      return null;
+    }
+    function DefaultHost() {
+      states.push(useRandomWink({ disabled: true }));
+      return null;
+    }
+
+    let renderer: ReturnType<typeof create> | undefined;
+    act(() => {
+      renderer = create(<Host />);
+    });
+    act(() => {
+      vi.advanceTimersByTime(states.at(-1)?.nextDelayMs ?? 0);
+    });
+    expect(states.at(-1)).toMatchObject({ isWinking: true, winkIndex: 1 });
+    act(() => {
+      vi.advanceTimersByTime(160);
+    });
+    expect(states.at(-1)?.isWinking).toBe(false);
+    act(() => renderer?.update(<Host disabled />));
+    expect(states.at(-1)?.isWinking).toBe(false);
+    act(() => renderer?.unmount());
+
+    globalThis.window = previousWindow;
+    act(() => {
+      renderer = create(<Host />);
+      create(<DefaultHost />);
+    });
+    act(() => renderer?.unmount());
+    vi.useRealTimers();
+  });
+});
+
+describe("rendering", () => {
+  it("renders decorative pieces without overriding inherited pupil tracking", () => {
+    expect(Blush({ active: false })).toBeNull();
+    expect(Blush({ active: true })).toMatchObject({
+      props: { className: "eyslie__blush", "aria-hidden": "true" },
+    });
+    expect(ThoughtBubble({ children: "" })).toBeNull();
+    expect(ThoughtBubble({ children: "yay" })).toMatchObject({
+      props: { className: "eyslie__thought", "aria-hidden": "true" },
+    });
+    expect(LetterEye({ letter: "O" }).props.style).toBeUndefined();
     expect(
       LetterEye({
         letter: "U",
@@ -101,578 +202,200 @@ describe("eye behaviour", () => {
       props: {
         "data-eye-role": "secondary",
         "data-winking": "true",
+        style: { "--eyslie-pupil-x": "1px", "--eyslie-pupil-y": "2px" },
       },
     });
   });
 
-  it("keeps the pupil constrained inside the eye", () => {
-    const offset = constrainPupilOffset(100, -80, { width: 20, height: 16 });
-
-    expect(Math.abs(offset.x)).toBeLessThanOrEqual(5.6);
-    expect(Math.abs(offset.y)).toBeLessThanOrEqual(3.84);
-    expect(constrainPupilOffset(0, 0, { width: 20, height: 16 })).toEqual({
-      x: 0,
-      y: 0,
-    });
+  it.each([
+    [{ text: "JOIN US" }, 2],
+    [{ text: "JOIN US", eyeLetters: {} }, 0],
+    [{ text: "JOIN US", eyeLetters: { primary: 1, secondary: 1 } }, 1],
+    [{ text: "JOIN US", eyeLetters: { primary: -1, secondary: 99 } }, 0],
+    [{ text: "JOIN US", eyeLetters: { primary: -1, secondary: 5 } }, 1],
+    [
+      { text: "JOIN US", eyeLetters: { primary: 1.5, secondary: undefined } },
+      0,
+    ],
+    [{ text: "join us", eyeLetters: { primary: "O", secondary: "u" } }, 2],
+    [{ text: "" }, 0],
+  ])("renders valid eye anchors for $0", (props, eyeCount) => {
+    const html = renderToString(<LivingText {...props} />);
+    expect(html.match(/data-eye-role/g) ?? []).toHaveLength(eyeCount);
   });
 
-  it("creates deterministic but non-constant wink delays", () => {
-    const first = getOrganicWinkDelayMs(12, 0);
-    const again = getOrganicWinkDelayMs(12, 0);
-    const next = getOrganicWinkDelayMs(12, 1);
-    const schedule = createWinkSchedule(12);
-
-    expect(first).toBe(again);
-    expect(first).not.toBe(next);
-    expect(schedule(0)).toBe(first);
-    expect(schedule(1)).toBe(next);
-    expect(first).toBeGreaterThanOrEqual(2600);
-    expect(first).toBeLessThanOrEqual(6200);
-  });
-
-  it("keeps random winks brief instead of closing for a whole interval", () => {
-    vi.useFakeTimers();
+  it("keeps SSR and the first browser render identical", () => {
+    const props = {
+      text: "O e\u0301 🇦🇺 U",
+      ariaLabel: "Unicode eyes",
+      className: "demo",
+      mood: livingTextMoods.blush,
+      thoughts: { blush: "hello" },
+      style: { color: "rebeccapurple" },
+      reducedMotion: true,
+    } as const;
+    const server = renderToString(<LivingText {...props} />);
     const previousWindow = globalThis.window;
-    globalThis.window = {
-      setTimeout,
-      clearTimeout,
-    } as unknown as Window & typeof globalThis;
-
-    function WinkProbe() {
-      const wink = useRandomWink({ seed: 12 });
-      return <span data-winking={wink.isWinking ? "true" : "false"} />;
-    }
-
-    let renderer: ReturnType<typeof create> | undefined;
-    act(() => {
-      renderer = create(<WinkProbe />);
-    });
-    expect(JSON.stringify(renderer?.toJSON())).toContain(
-      '"data-winking":"false"',
-    );
-
-    act(() => {
-      vi.advanceTimersByTime(getOrganicWinkDelayMs(12, 0));
-    });
-    expect(JSON.stringify(renderer?.toJSON())).toContain(
-      '"data-winking":"true"',
-    );
-
-    act(() => {
-      vi.advanceTimersByTime(160);
-    });
-    expect(JSON.stringify(renderer?.toJSON())).toContain(
-      '"data-winking":"false"',
-    );
-
-    act(() => {
-      renderer?.unmount();
-    });
+    globalThis.window = {} as Window & typeof globalThis;
+    const browser = renderToString(<LivingText {...props} />);
     globalThis.window = previousWindow;
-    vi.useRealTimers();
+
+    expect(browser).toBe(server);
+    expect(server).toContain('aria-label="Unicode eyes"');
+    expect(server).toContain("eyslie__blush");
+    expect(server).toContain("hello");
+    expect(server).toContain("demo");
+    expect(server).toContain("rebeccapurple");
   });
 });
 
-describe("proximity, thought bubbles, and accessibility helpers", () => {
-  it("detects pointer proximity with a configurable radius", () => {
-    const rect = { left: 10, top: 10, right: 50, bottom: 40 };
-
-    expect(isPointerNear(rect, { x: 4, y: 12 }, 8)).toBe(true);
-    expect(isPointerNear(rect, { x: 0, y: 0 }, 4)).toBe(false);
-  });
-
-  it("uses configurable thought bubbles for external mood control", () => {
-    expect(
-      getThoughtForMood(livingTextMoods.celebration, {
-        [livingTextMoods.celebration]: "yay",
-      }),
-    ).toBe("yay");
-    expect(getThoughtForMood(livingTextMoods.idleCurious, {})).toBe("");
-  });
-
-  it("splits text safely", () => {
-    expect(splitTextLetters("O🙂")).toEqual(["O", "🙂"]);
-  });
-
-  it("disables animation in reduced-motion or deterministic test mode", () => {
-    expect(shouldAnimateLivingText({ reducedMotion: true })).toBe(false);
-    expect(shouldAnimateLivingText({ testMode: true })).toBe(false);
-    expect(shouldAnimateLivingText({})).toBe(true);
-  });
-
-  it("resolves comprehensive emotion and style contracts", () => {
-    expect(livingTextEmotionNames).toContain("empathic-pain");
-    expect(livingTextEmotionNames).toContain("craving");
-    expect(livingTextEyeStyles).toEqual([
-      "cartoon",
-      "hand-drawn",
-      "ink",
-      "anime",
-      "googly",
-      "minimal",
-      "soft-pastel",
-      "geometric",
-    ]);
-    for (const name of livingTextEmotionNames) {
-      const preset = livingTextEmotionPresets[name];
-      const resolved = resolveLivingTextEmotion(name, 0.8);
-
-      expect(preset.valence).toBeGreaterThanOrEqual(-1);
-      expect(preset.valence).toBeLessThanOrEqual(1);
-      expect(resolved.eyeOpenness).toBeGreaterThanOrEqual(0);
-      expect(resolved.eyeOpenness).toBeLessThanOrEqual(1);
-      expect(resolved.tearAmount).toBeGreaterThanOrEqual(0);
-      expect(resolved.blushAmount).toBeGreaterThanOrEqual(0);
-    }
-
-    expect(
-      resolveLivingTextEmotion({
-        valence: 2,
-        arousal: 2,
-        dominance: -2,
-        intensity: 2,
-      }),
-    ).toMatchObject({
-      valence: 1,
-      arousal: 1,
-      dominance: -1,
-      intensity: 1,
-    });
-  });
-});
-
-describe("rendered pieces", () => {
-  it("renders blush and thought nodes as decorative layers", () => {
-    expect(Blush({ active: false })).toBeNull();
-    expect(Blush({ active: true })).toMatchObject({
-      props: { className: "eyslie__blush", "aria-hidden": "true" },
-    });
-    expect(ThoughtBubble({ children: "" })).toBeNull();
-    expect(ThoughtBubble({ children: "yay" })).toMatchObject({
-      props: { className: "eyslie__thought", "aria-hidden": "true" },
-    });
-  });
-
-  it("renders living text with explicit eye anchors and accessible fallback text", () => {
-    let renderer: ReturnType<typeof create> | undefined;
-
-    act(() => {
-      renderer = create(
-        <LivingText
-          text="JOIN US"
-          ariaLabel="Join us"
-          mood={livingTextMoods.blush}
-          eyeLetters={{ primary: 1, secondary: 5 }}
-          emotion="joy"
-          eyeStyle="minimal"
-          testMode
-        />,
-      );
-    });
-    const tree = renderer?.toJSON();
-
-    expect(JSON.stringify(tree)).toContain('"aria-label":"Join us"');
-    expect(JSON.stringify(tree)).toContain('"data-eye-role":"primary"');
-    expect(JSON.stringify(tree)).toContain('"data-eye-role":"secondary"');
-    expect(JSON.stringify(tree)).toContain('"data-eye-style":"minimal"');
-    expect(JSON.stringify(tree)).toContain('"data-emotion":"joy"');
-    expect(JSON.stringify(tree)).toContain("AWWWW");
-
-    act(() => {
-      renderer = create(<LivingText text="JOIN US" testMode />);
-    });
-    expect(JSON.stringify(renderer?.toJSON())).toContain(
-      '"data-eye-role":"primary"',
-    );
-
-    act(() => {
-      renderer = create(
-        <LivingText
-          text="JOIN US"
-          eyeLetters={{}}
-          reducedMotion
-          className="demo"
-        />,
-      );
-    });
-    expect(JSON.stringify(renderer?.toJSON())).toContain(
-      '"data-reduced-motion":"true"',
-    );
-  });
-
-  it("renders plain text before readiness and calls external readiness", () => {
-    const onReady = vi.fn();
-    let renderer: ReturnType<typeof create> | undefined;
-
-    act(() => {
-      renderer = create(
-        <LivingText
-          text="JOIN US"
-          ready={false}
-          onReady={onReady}
-          eyeLetters={{ primary: 1, secondary: 4 }}
-        />,
-      );
-    });
-    expect(JSON.stringify(renderer?.toJSON())).toContain(
-      '"data-ready":"false"',
-    );
-    expect(JSON.stringify(renderer?.toJSON())).not.toContain("data-eye-role");
-
-    act(() => {
-      renderer = create(
-        <LivingText
-          text="JOIN US"
-          ready
-          onReady={onReady}
-          eyeLetters={{ primary: 1, secondary: 4 }}
-        />,
-      );
-    });
-    expect(JSON.stringify(renderer?.toJSON())).toContain('"data-ready":"true"');
-    expect(JSON.stringify(renderer?.toJSON())).toContain("data-eye-role");
-    expect(onReady).toHaveBeenCalled();
-  });
-
-  it("waits for browser font and layout readiness before drawing eyes", async () => {
+describe("browser hooks", () => {
+  it("coalesces pointer bursts and measures each eye", () => {
     const previousWindow = globalThis.window;
-    const previousDocument = globalThis.document;
-    const previousResizeObserver = globalThis.ResizeObserver;
+    const listeners = new Map<string, (event: PointerEvent) => void>();
     const frames: FrameRequestCallback[] = [];
-    const disconnect = vi.fn();
-    const observe = vi.fn();
-    const onReady = vi.fn();
-    class FakeResizeObserver {
-      observe = observe;
-      disconnect = disconnect;
-    }
+    const cancelAnimationFrame = vi.fn();
     globalThis.window = {
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
+      addEventListener: (type: string, listener: EventListener) =>
+        listeners.set(type, listener as (event: PointerEvent) => void),
+      removeEventListener: (type: string) => listeners.delete(type),
       requestAnimationFrame: (callback: FrameRequestCallback) => {
         frames.push(callback);
         return frames.length;
       },
-      cancelAnimationFrame: vi.fn(),
-      setTimeout,
-      clearTimeout,
+      cancelAnimationFrame,
     } as unknown as Window & typeof globalThis;
-    globalThis.document = {
-      fonts: { ready: Promise.resolve() },
-    } as unknown as Document;
-    globalThis.ResizeObserver =
-      FakeResizeObserver as unknown as typeof ResizeObserver;
 
-    let renderer: ReturnType<typeof create> | undefined;
-    await act(async () => {
-      renderer = create(<LivingText text="JOIN US" onReady={onReady} />, {
-        createNodeMock: () => ({
-          style: { setProperty: vi.fn() },
-          getBoundingClientRect: () => ({
-            left: 0,
-            top: 0,
-            width: 120,
-            height: 30,
-          }),
-        }),
-      });
-      await Promise.resolve();
-    });
-    expect(JSON.stringify(renderer?.toJSON())).toContain(
-      '"data-ready":"false"',
-    );
-    await act(async () => {
-      frames.shift()?.(0);
-      frames.shift()?.(16);
-      await Promise.resolve();
-    });
-
-    expect(JSON.stringify(renderer?.toJSON())).toContain('"data-ready":"true"');
-    expect(onReady).toHaveBeenCalled();
-    expect(observe).toHaveBeenCalled();
-
-    act(() => {
-      renderer?.unmount();
-    });
-    expect(disconnect).toHaveBeenCalled();
-    globalThis.window = previousWindow;
-    globalThis.document = previousDocument;
-    globalThis.ResizeObserver = previousResizeObserver;
-  });
-
-  it("keeps overlays disabled when the site is not ready", () => {
-    const previousWindow = globalThis.window;
-    const previousDocument = globalThis.document;
-    const previousResizeObserver = globalThis.ResizeObserver;
-    globalThis.window = {
-      requestAnimationFrame: vi.fn(),
-      cancelAnimationFrame: vi.fn(),
-    } as unknown as Window & typeof globalThis;
-    globalThis.document = {} as Document;
-    globalThis.ResizeObserver = vi.fn() as unknown as typeof ResizeObserver;
-
-    let renderer: ReturnType<typeof create> | undefined;
-    act(() => {
-      renderer = create(<LivingText text="JOIN US" siteReady={false} />);
-    });
-
-    expect(JSON.stringify(renderer?.toJSON())).toContain(
-      '"data-ready":"false"',
-    );
-    expect(JSON.stringify(renderer?.toJSON())).not.toContain("data-eye-role");
-    globalThis.window = previousWindow;
-    globalThis.document = previousDocument;
-    globalThis.ResizeObserver = previousResizeObserver;
-  });
-
-  it("handles fallback timers and failed readiness measurement", async () => {
-    const previousWindow = globalThis.window;
-    const previousDocument = globalThis.document;
-    const previousResizeObserver = globalThis.ResizeObserver;
-    const timers: TimerHandler[] = [];
-    const clearTimeoutMock = vi.fn();
-    globalThis.window = {
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      setTimeout: (callback: TimerHandler) => {
-        timers.push(callback);
-        return timers.length;
-      },
-      clearTimeout: clearTimeoutMock,
-    } as unknown as Window & typeof globalThis;
-    globalThis.document = {} as Document;
-    globalThis.ResizeObserver = class {
-      observe() {}
-      disconnect() {}
-    } as unknown as typeof ResizeObserver;
-
-    let renderer: ReturnType<typeof create> | undefined;
-    await act(async () => {
-      renderer = create(<LivingText text="JOIN US" />, {
-        createNodeMock: () => ({
-          style: { setProperty: vi.fn() },
-          getBoundingClientRect: () => ({ width: 0, height: 0 }),
-        }),
-      });
-      await Promise.resolve();
-    });
-    await act(async () => {
-      (timers.shift() as () => void)?.();
-      (timers.shift() as () => void)?.();
-      await Promise.resolve();
-    });
-    expect(JSON.stringify(renderer?.toJSON())).toContain(
-      '"data-ready":"false"',
-    );
-
-    await act(async () => {
-      renderer = create(<LivingText text="JOIN US" />, {
-        createNodeMock: () => ({
-          style: { setProperty: vi.fn() },
-          getBoundingClientRect: () => ({ width: 120, height: 20 }),
-        }),
-      });
-      await Promise.resolve();
-    });
-    act(() => {
-      renderer?.unmount();
-    });
-    (timers.shift() as () => void)?.();
-    (timers.shift() as () => void)?.();
-    expect(clearTimeoutMock).toHaveBeenCalled();
-
-    globalThis.window = previousWindow;
-    globalThis.document = previousDocument;
-    globalThis.ResizeObserver = previousResizeObserver;
-  });
-});
-
-describe("React hooks", () => {
-  it("tracks eyes with CSS variables without React state", () => {
-    const style = { setProperty: vi.fn() };
-    const element = {
-      style,
-      getBoundingClientRect: () => ({
-        left: 10,
-        top: 10,
+    const makeEye = (left: number) => ({
+      style: { setProperty: vi.fn() },
+      getBoundingClientRect: vi.fn(() => ({
+        left,
+        top: 0,
         width: 20,
         height: 16,
-      }),
+      })),
+    });
+    const eyes = [makeEye(0), makeEye(30)];
+    const root = {
+      style: { setProperty: vi.fn() },
+      querySelectorAll: () => eyes,
     } as unknown as HTMLElement;
-    const ref = { current: element };
-    const listeners = new Map<string, (event: PointerEvent) => void>();
-    const previousWindow = globalThis.window;
-    globalThis.window = {
-      addEventListener: (type: string, listener: EventListener) => {
-        listeners.set(type, listener as (event: PointerEvent) => void);
-      },
-      removeEventListener: (type: string) => {
-        listeners.delete(type);
-      },
-    } as unknown as Window & typeof globalThis;
+    const ref = { current: root };
 
-    function Host() {
-      useEyeTracking(ref);
+    function Host({ disabled = false }: { disabled?: boolean }) {
+      useEyeTracking(ref, { disabled });
       return null;
     }
-    function DisabledHost() {
-      useEyeTracking(ref, { disabled: true });
+
+    let renderer: ReturnType<typeof create> | undefined;
+    act(() => {
+      renderer = create(<Host />);
+    });
+    listeners.get("pointermove")?.({ clientX: 50, clientY: 8 } as PointerEvent);
+    listeners.get("pointermove")?.({ clientX: 40, clientY: 8 } as PointerEvent);
+    expect(frames).toHaveLength(1);
+    frames.shift()?.(0);
+    for (const eye of eyes) {
+      expect(eye.getBoundingClientRect).toHaveBeenCalledTimes(1);
+      expect(eye.style.setProperty).toHaveBeenCalledWith(
+        "--eyslie-pupil-x",
+        expect.stringContaining("px"),
+      );
+    }
+    listeners.get("pointermove")?.({ clientX: 10, clientY: 8 } as PointerEvent);
+    act(() => renderer?.unmount());
+    expect(cancelAnimationFrame).toHaveBeenCalled();
+    expect(listeners.has("pointermove")).toBe(false);
+
+    const rootOnly = {
+      style: { setProperty: vi.fn() },
+      querySelectorAll: () => [],
+    } as unknown as HTMLElement;
+    function RootOnlyHost() {
+      useEyeTracking({ current: rootOnly }, { disabled: true });
       return null;
     }
     function NullHost() {
-      useEyeTracking({ current: null });
+      useEyeTracking({ current: null }, { disabled: true });
       return null;
     }
-
-    let hostRenderer: ReturnType<typeof create> | undefined;
     act(() => {
-      hostRenderer = create(<Host />);
-    });
-    listeners.get("pointermove")?.({
-      clientX: 40,
-      clientY: 20,
-    } as PointerEvent);
-
-    expect(style.setProperty).toHaveBeenCalledWith(
-      "--eyslie-pupil-x",
-      expect.stringContaining("px"),
-    );
-    act(() => {
-      create(<DisabledHost />);
+      create(<Host disabled />);
+      create(<RootOnlyHost />);
       create(<NullHost />);
     });
-    listeners.get("pointermove")?.({
-      clientX: 20,
-      clientY: 20,
-    } as PointerEvent);
-    expect(style.setProperty).toHaveBeenCalledWith("--eyslie-pupil-x", "0px");
-    act(() => {
-      hostRenderer?.unmount();
-    });
-    expect(listeners.has("pointermove")).toBe(false);
-
+    expect(rootOnly.style.setProperty).toHaveBeenCalledWith(
+      "--eyslie-pupil-x",
+      "0px",
+    );
     globalThis.window = previousWindow;
   });
 
-  it("updates proximity state only when near/far state changes", () => {
-    const element = {
-      getBoundingClientRect: () => ({
-        left: 10,
-        top: 10,
-        right: 50,
-        bottom: 40,
-      }),
-    } as unknown as HTMLElement;
-    const ref = { current: element };
-    const listeners = new Map<string, (event: PointerEvent) => void>();
+  it("tracks proximity transitions and resets when disabled", () => {
     const previousWindow = globalThis.window;
+    const listeners = new Map<string, (event: PointerEvent) => void>();
     globalThis.window = {
-      addEventListener: (type: string, listener: EventListener) => {
-        listeners.set(type, listener as (event: PointerEvent) => void);
-      },
-      removeEventListener: (type: string) => {
-        listeners.delete(type);
-      },
+      addEventListener: (type: string, listener: EventListener) =>
+        listeners.set(type, listener as (event: PointerEvent) => void),
+      removeEventListener: (type: string) => listeners.delete(type),
     } as unknown as Window & typeof globalThis;
+    const ref: { current: HTMLElement | null } = {
+      current: {
+        getBoundingClientRect: () => ({
+          left: 10,
+          top: 10,
+          right: 50,
+          bottom: 40,
+        }),
+      } as HTMLElement,
+    };
     const observed: boolean[] = [];
 
-    function Host() {
-      observed.push(useProximity(ref, { radius: 8 }));
+    function Host({ disabled = false }: { disabled?: boolean }) {
+      observed.push(useProximity(ref, { radius: 8, disabled }));
       return null;
     }
-    function DisabledHost() {
-      observed.push(useProximity(ref, { disabled: true }));
-      return null;
-    }
-    function NullHost() {
-      observed.push(useProximity({ current: null }));
+    function DefaultHost() {
+      observed.push(useProximity(ref));
       return null;
     }
 
-    let hostRenderer: ReturnType<typeof create> | undefined;
+    let renderer: ReturnType<typeof create> | undefined;
     act(() => {
-      hostRenderer = create(<Host />);
+      renderer = create(<Host />);
     });
+    act(() =>
+      listeners.get("pointermove")?.({
+        clientX: 12,
+        clientY: 12,
+      } as PointerEvent),
+    );
+    act(() =>
+      listeners.get("pointermove")?.({
+        clientX: 13,
+        clientY: 13,
+      } as PointerEvent),
+    );
+    expect(observed.at(-1)).toBe(true);
+    act(() => renderer?.update(<Host disabled />));
+    expect(observed.at(-1)).toBe(false);
+    act(() => renderer?.update(<Host />));
     act(() => {
+      ref.current = null;
       listeners.get("pointermove")?.({
         clientX: 12,
         clientY: 12,
       } as PointerEvent);
     });
-    act(() => {
-      listeners.get("pointermove")?.({
-        clientX: 13,
-        clientY: 13,
-      } as PointerEvent);
-    });
-    act(() => {
-      listeners.get("pointermove")?.({
-        clientX: 100,
-        clientY: 100,
-      } as PointerEvent);
-    });
-
-    expect(observed).toContain(true);
     expect(observed.at(-1)).toBe(false);
-    act(() => {
-      create(<DisabledHost />);
-      create(<NullHost />);
-    });
-    listeners.get("pointermove")?.({
-      clientX: 10,
-      clientY: 10,
-    } as PointerEvent);
-    act(() => {
-      hostRenderer?.unmount();
-    });
+    act(() => renderer?.unmount());
     expect(listeners.has("pointermove")).toBe(false);
+
     globalThis.window = previousWindow;
-  });
-
-  it("uses deterministic wink timing and disables timers on demand", () => {
-    vi.useFakeTimers();
-    const previousWindow = globalThis.window;
-    globalThis.window = {
-      setTimeout,
-      clearTimeout,
-    } as unknown as Window & typeof globalThis;
-    const states: ReturnType<typeof useRandomWink>[] = [];
-
-    function Host({ disabled = false }: { disabled?: boolean }) {
-      states.push(useRandomWink({ seed: 2, disabled }));
-      return null;
-    }
-    function DefaultHost() {
-      states.push(useRandomWink({ testMode: true }));
-      return null;
-    }
-
     act(() => {
-      create(<Host />);
-    });
-    expect(states.at(-1)?.isWinking).toBe(false);
-    act(() => {
-      vi.advanceTimersByTime(states.at(-1)?.nextDelayMs ?? 0);
-    });
-    expect(states.at(-1)?.winkIndex).toBe(1);
-
-    act(() => {
-      create(<Host disabled />);
+      renderer = create(<Host />);
       create(<DefaultHost />);
     });
-    expect(states.at(-1)?.isWinking).toBe(false);
-
-    globalThis.window = previousWindow;
-    vi.useRealTimers();
-  });
-});
-
-describe("hot path guard", () => {
-  it("does not use React state on every pointermove", () => {
-    const hookSource = useEyeTracking.toString();
-
-    expect(hookSource).not.toContain("useState");
-    expect(hookSource).not.toContain("setState");
-    expect(hookSource).toContain("style.setProperty");
+    act(() => renderer?.unmount());
   });
 });

@@ -8,34 +8,30 @@ export type EyeBounds = {
   height: number;
 };
 
-export type EyeLetterParts = {
-  glyph: string;
-  hasInnerEye: true;
-  hasPupil: true;
-  keepsGlyphShape: true;
-};
-
 export function constrainPupilOffset(
   pointerX: number,
   pointerY: number,
   bounds: EyeBounds,
 ): Point {
-  const maxX = Math.max(0, bounds.width * 0.28);
-  const maxY = Math.max(0, bounds.height * 0.24);
-  const length = Math.hypot(pointerX, pointerY);
-  const maxLength = Math.hypot(maxX, maxY);
-
-  if (!length || length <= maxLength) {
-    return {
-      x: clamp(pointerX, -maxX, maxX),
-      y: clamp(pointerY, -maxY, maxY),
-    };
+  const maxX = Number.isFinite(bounds.width)
+    ? Math.max(0, bounds.width * 0.18)
+    : 0;
+  const maxY = Number.isFinite(bounds.height)
+    ? Math.max(0, bounds.height * 0.09)
+    : 0;
+  if (
+    !maxX ||
+    !maxY ||
+    !Number.isFinite(pointerX) ||
+    !Number.isFinite(pointerY)
+  ) {
+    return { x: 0, y: 0 };
   }
 
-  const scale = maxLength / length;
+  const scale = Math.max(1, Math.hypot(pointerX / maxX, pointerY / maxY));
   return {
-    x: clamp(pointerX * scale, -maxX, maxX),
-    y: clamp(pointerY * scale, -maxY, maxY),
+    x: pointerX / scale,
+    y: pointerY / scale,
   };
 }
 
@@ -50,17 +46,4 @@ export function getPupilOffsetFromRect(
     width: rect.width,
     height: rect.height,
   });
-}
-
-export function getEyeLetterParts(glyph: string): EyeLetterParts {
-  return {
-    glyph,
-    hasInnerEye: true,
-    hasPupil: true,
-    keepsGlyphShape: true,
-  };
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
 }

@@ -10,13 +10,15 @@ export type LetterEyeProps = {
 export function LetterEye({
   letter,
   eyeRole = "primary",
-  pupilOffset = { x: 0, y: 0 },
+  pupilOffset,
   winking = false,
 }: LetterEyeProps) {
-  const style = {
-    "--eyslie-pupil-x": `${pupilOffset.x}px`,
-    "--eyslie-pupil-y": `${pupilOffset.y}px`,
-  } as CSSProperties;
+  const style = pupilOffset
+    ? ({
+        "--eyslie-pupil-x": `${pupilOffset.x}px`,
+        "--eyslie-pupil-y": `${pupilOffset.y}px`,
+      } as CSSProperties)
+    : undefined;
 
   return (
     <span
