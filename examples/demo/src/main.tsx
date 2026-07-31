@@ -2,64 +2,30 @@ import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   LivingText,
-  livingTextEmotionNames,
-  livingTextEyeStyles,
   livingTextMoods,
-  type AffectVector,
-  type LivingTextEmotionName,
-  type LivingTextEyeStyle,
   type LivingTextMood,
 } from "../../../dist/index.js";
 import "@uqrealitylabs/eyslie/styles.css";
 import "./styles.css";
 
-const DEFAULT_AFFECT: AffectVector = {
-  valence: 0.75,
-  arousal: 0.7,
-  dominance: 0.2,
-  intensity: 0.8,
-};
-
 const moodOptions: LivingTextMood[] = Object.values(livingTextMoods);
-const affectControls: Array<{ key: keyof AffectVector; label: string; min: number; max: number; step: number }> = [
-  { key: "valence", label: "Valence", min: -1, max: 1, step: 0.05 },
-  { key: "arousal", label: "Arousal", min: 0, max: 1, step: 0.05 },
-  { key: "dominance", label: "Dominance", min: -1, max: 1, step: 0.05 },
-  { key: "intensity", label: "Intensity", min: 0, max: 1, step: 0.05 },
-];
 
 const defaultCode = `<LivingText
   text="JOIN US"
-  emotion="joy"
+  mood={livingTextMoods.idleCurious}
   eyeLetters={{ primary: "O", secondary: "U" }}
-  reducedMotion={prefersReducedMotion}
 />`;
-
-function clampText(text: string) {
-  return text.slice(0, 24);
-}
 
 function App() {
   const [text, setText] = useState("JOIN US");
-  const [emotionInput, setEmotionInput] = useState<LivingTextEmotionName>("joy");
   const [mood, setMood] = useState<LivingTextMood>(livingTextMoods.idleCurious);
-  const [eyeStyle, setEyeStyle] = useState<LivingTextEyeStyle>("cartoon");
-  const [affect, setAffect] = useState<AffectVector>(DEFAULT_AFFECT);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [ready, setReady] = useState(true);
   const [copyStatus, setCopyStatus] = useState("Copy example");
-
-  const validEmotion = livingTextEmotionNames.includes(emotionInput);
-  const emotion = validEmotion ? emotionInput : "neutral";
 
   function reset() {
     setText("JOIN US");
-    setEmotionInput("joy");
     setMood(livingTextMoods.idleCurious);
-    setEyeStyle("cartoon");
-    setAffect(DEFAULT_AFFECT);
     setReducedMotion(false);
-    setReady(true);
     setCopyStatus("Copy example");
   }
 
@@ -126,24 +92,17 @@ function App() {
                   text={text || " "}
                   ariaLabel={text || "Living text"}
                   mood={mood}
-                  emotion={emotion}
-                  affect={affect}
-                  eyeStyle={eyeStyle}
                   eyeLetters={{ primary: "O", secondary: "U" }}
                   thoughts={{ nearStartled: "AWWWW", celebration: "yay", sadShrivel: "aw." }}
                   reducedMotion={reducedMotion}
-                  ready={ready}
-                  siteReady
-                  testMode
                 />
               </div>
-              <p className="stage-status" role="status">
-                {ready ? "Plain text is ready; overlays are measured before they appear." : "Readiness is paused; the readable text stays in place."}
+              <p className="stage-status">
+                Move the pointer around the word to aim the pupils; the U blinks on its seeded schedule.
               </p>
-              {!validEmotion && <p className="field-error">Choose an emotion from the list to activate its preset.</p>}
             </div>
 
-            <form className="control-panel" onSubmit={(event) => event.preventDefault()}>
+            <div className="control-panel">
               <div className="control-panel-heading">
                 <div>
                   <p className="eyebrow">PUBLIC PROPS</p>
@@ -154,20 +113,7 @@ function App() {
 
               <label className="control-field">
                 <span>Text</span>
-                <input value={text} maxLength={24} onChange={(event) => setText(clampText(event.target.value))} />
-              </label>
-              <label className="control-field">
-                <span>Emotion preset</span>
-                <input
-                  list="emotion-options"
-                  value={emotionInput}
-                  onChange={(event) => setEmotionInput(event.target.value as LivingTextEmotionName)}
-                  aria-describedby="emotion-help"
-                />
-                <datalist id="emotion-options">
-                  {livingTextEmotionNames.map((name) => <option value={name} key={name} />)}
-                </datalist>
-                <small id="emotion-help">38 named presets, plus custom affect vectors.</small>
+                <input value={text} maxLength={24} onChange={(event) => setText(event.target.value)} />
               </label>
               <label className="control-field">
                 <span>Mood state</span>
@@ -175,30 +121,8 @@ function App() {
                   {moodOptions.map((option) => <option value={option} key={option}>{option}</option>)}
                 </select>
               </label>
-              <label className="control-field">
-                <span>Eye style</span>
-                <select value={eyeStyle} onChange={(event) => setEyeStyle(event.target.value as LivingTextEyeStyle)}>
-                  {livingTextEyeStyles.map((style) => <option value={style} key={style}>{style}</option>)}
-                </select>
-              </label>
-              <div className="range-list" aria-label="Affect controls">
-                {affectControls.map(({ key, label, min, max, step }) => (
-                  <label className="range-field" key={key}>
-                    <span><span>{label}</span><output>{affect[key].toFixed(2)}</output></span>
-                    <input
-                      type="range"
-                      min={min}
-                      max={max}
-                      step={step}
-                      value={affect[key]}
-                      onChange={(event) => setAffect((current) => ({ ...current, [key]: Number(event.target.value) }))}
-                    />
-                  </label>
-                ))}
-              </div>
               <label className="check-field"><input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} /><span>Reduced motion</span></label>
-              <label className="check-field"><input type="checkbox" checked={ready} onChange={(event) => setReady(event.target.checked)} /><span>Site ready signal</span></label>
-            </form>
+            </div>
           </div>
         </section>
 
@@ -209,8 +133,8 @@ function App() {
           </div>
           <div className="feature-grid">
             <article className="feature-item"><span className="feature-number">01</span><h3>Anchored eyes</h3><p>O and U anchors are explicit and recalculated from local letter bounds, so overlays do not jump to the page corner.</p></article>
-            <article className="feature-item"><span className="feature-number">02</span><h3>Emotion as parameters</h3><p>Named moods are a friendly start. Valence, arousal, dominance, and intensity let a site tune the feel.</p></article>
-            <article className="feature-item"><span className="feature-number">03</span><h3>Readable by default</h3><p>Plain text renders first, animated layers wait for layout, and reduced motion keeps the expression legible.</p></article>
+            <article className="feature-item"><span className="feature-number">02</span><h3>Explicit moods</h3><p>Named states control colour, blush, and thought bubbles without hiding application logic inside the component.</p></article>
+            <article className="feature-item"><span className="feature-number">03</span><h3>Readable by default</h3><p>Server and client render the same accessible text, and reduced motion keeps the expression still.</p></article>
             <article className="feature-item"><span className="feature-number">04</span><h3>Thought bubbles</h3><p>Small reactions such as AWWWW, aw., ow., and yay are configurable site copy, not hard-coded navigation.</p></article>
           </div>
         </section>
@@ -229,7 +153,7 @@ function App() {
         </section>
       </main>
 
-      <footer className="site-footer"><span>Eyslie / interactive library demonstration</span><span>UQ Reality Labs</span><a href="https://github.com/uqrealitylabs/eyslie" rel="noreferrer">Source on GitHub</a></footer>
+      <footer className="site-footer"><span>Eyslie / interactive library demonstration</span><span>UQ Reality Labs</span><a href="https://github.com/uqrealitylabs/eyslie" rel="noreferrer">Source on GitHub</a><a href="./OFL.txt">Font licence</a></footer>
     </div>
   );
 }

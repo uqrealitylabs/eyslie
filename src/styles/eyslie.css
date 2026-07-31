@@ -25,6 +25,7 @@
   display: inline-flex;
   align-items: baseline;
   gap: 0.02em;
+  white-space: pre-wrap;
 }
 
 .eyslie__letter {
@@ -81,6 +82,10 @@
   height: 0.06em;
 }
 
+.eyslie__letter[data-eye-role="secondary"][data-winking="true"] .eyslie__pupil {
+  opacity: 0;
+}
+
 .eyslie__thought {
   position: absolute;
   left: 50%;
@@ -126,8 +131,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .eyslie__pupil,
-  .eyslie__inner-eye {
-    transition: none;
+  .eyslie__pupil {
+    transform: translate(-50%, -50%);
+  }
+
+  .eyslie__letter[data-eye-role="secondary"][data-winking="true"]
+    .eyslie__inner-eye {
+    height: 0.35em;
   }
 }

@@ -50,7 +50,7 @@ export function JoinButton() {
 
 ### Living Letters
 
-`splitTextLetters()` uses `Array.from()` so emoji and composed characters are not split as raw UTF-16 units. Select eye anchors by letter value or letter index.
+`splitTextLetters()` uses `Intl.Segmenter` so emoji, combining marks, flags, and joined glyphs stay intact. Select eye anchors by grapheme value or index.
 
 ### O Eye / U Eyelid
 
@@ -120,12 +120,8 @@ Run the demo locally with `npm run demo:dev`. A production build is written to
 `demo-dist/` by `npm run demo:build`, and `npm run demo:preview` serves that
 output locally.
 
-The demo is built with `/project/eyslie/` as its production base path and is
-intended for `https://uqrealitylabs.com/project/eyslie/`. The current repository
-Pages site is separately exposed at `https://uqrealitylabs.com/eyslie/`; the
-organisation's root-site or proxy configuration must map the requested
-`/project/eyslie/` path to this Pages deployment. No conflicting `CNAME` is
-committed here.
+The Pages workflow builds the demo at
+`https://uqrealitylabs.com/eyslie/` with the matching `/eyslie/` asset base.
 
 No Chalk font asset is present in the source repositories. The demo therefore
 uses the existing OFL-licensed Pixelify Sans asset in `examples/demo/src/assets`
