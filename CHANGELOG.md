@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/uqrealitylabs/eyslie/compare/v0.3.0...v0.4.0) (2026-07-31)
+
+
+### Features
+
+* stabilize rendering and Pages demo ([#16](https://github.com/uqrealitylabs/eyslie/issues/16)) ([f881770](https://github.com/uqrealitylabs/eyslie/commit/f881770d0be93a4b9223ff91b3dde4eef49e1486))
+
 ## [0.3.0](https://github.com/uqrealitylabs/eyslie/compare/v0.2.0...v0.3.0) (2026-07-18)
 
 
