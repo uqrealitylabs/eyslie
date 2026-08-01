@@ -35,6 +35,8 @@ jobs:
           package-manager-cache: false
       - run: |
           set -euo pipefail
+          npm ci --ignore-scripts --allow-git=none
+          npm audit signatures
           npm run security:audit -- --ignore-scripts
           npm run security:osv
 

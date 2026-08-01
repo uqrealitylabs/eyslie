@@ -1,25 +1,8 @@
-import { type RefObject, useEffect, useRef, useState } from "react";
+"use client";
 
-export type PointerRect = {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-};
-
-export function isPointerNear(
-  rect: PointerRect,
-  point: { x: number; y: number },
-  radius: number,
-) {
-  const safeRadius = Number.isFinite(radius) ? Math.max(0, radius) : 0;
-  return (
-    point.x >= rect.left - safeRadius &&
-    point.x <= rect.right + safeRadius &&
-    point.y >= rect.top - safeRadius &&
-    point.y <= rect.bottom + safeRadius
-  );
-}
+import type { RefObject } from "react";
+import * as React from "react";
+import { isPointerNear } from "../math/eyeMath.js";
 
 export function useProximity(
   ref: RefObject<HTMLElement | null>,
@@ -28,17 +11,22 @@ export function useProximity(
     disabled?: boolean | undefined;
   } = {},
 ) {
-  const [near, setNear] = useState(false);
-  const nearRef = useRef(false);
+  const [near, setNear] = React.useState(false);
+  const nearRef = React.useRef(false);
   const radius = options.radius ?? 80;
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (options.disabled || typeof window === "undefined") {
       nearRef.current = false;
       setNear(false);
       return;
     }
 
+    const reset = () => {
+      if (!nearRef.current) return;
+      nearRef.current = false;
+      setNear(false);
+    };
     const onPointerMove = (event: PointerEvent) => {
       const element = ref.current;
       const nextNear = element
@@ -53,9 +41,23 @@ export function useProximity(
       nearRef.current = nextNear;
       setNear(nextNear);
     };
+    const onPointerOut = (event: PointerEvent) => {
+      if (event.relatedTarget === null) reset();
+    };
+    const resetEvents = ["blur", "resize", "scroll"] as const;
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerout", onPointerOut, { passive: true });
+    for (const event of resetEvents) {
+      window.addEventListener(event, reset, true);
+    }
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerout", onPointerOut);
+      for (const event of resetEvents) {
+        window.removeEventListener(event, reset, true);
+      }
+    };
   }, [options.disabled, radius, ref]);
 
   return options.disabled ? false : near;

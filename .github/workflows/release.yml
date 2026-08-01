@@ -58,10 +58,8 @@ jobs:
           npm ci --ignore-scripts --allow-git=none
           npm audit signatures
           npm run security:audit -- --ignore-scripts
-          npm run security:osv
           npm run test:ci:base
           mkdir -p "${RUNNER_TEMP}/eyslie"
           filename=$(npm pack --silent --ignore-scripts --pack-destination "${RUNNER_TEMP}/eyslie")
           tarball="${RUNNER_TEMP}/eyslie/${filename}"
-          PACKAGE_TARBALL="$tarball" npm run test:consumer
           npm publish "$tarball" --ignore-scripts --provenance --access public

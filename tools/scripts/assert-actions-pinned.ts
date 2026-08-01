@@ -8,7 +8,6 @@ const expectedWorkflows = [
   "release.yml",
   "security.yml",
 ];
-const mutableRefs = new Set(["main", "master", "latest"]);
 const shaRef = /^[a-f0-9]{40}$/i;
 
 function workflowFiles(root = workflowRoot) {
@@ -39,11 +38,6 @@ export function findActionPinIssues(root = workflowRoot) {
         const ref = action.split("@")[1];
         if (!ref) {
           issues.push(`${file}:${index + 1} missing action ref`);
-          return;
-        }
-
-        if (mutableRefs.has(ref)) {
-          issues.push(`${file}:${index + 1} uses mutable @${ref}`);
           return;
         }
 

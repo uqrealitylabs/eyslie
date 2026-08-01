@@ -27,6 +27,10 @@ import { LivingText } from "@uqrealitylabs/eyslie";
 import "@uqrealitylabs/eyslie/styles.css";
 ```
 
+React Server Component frameworks keep `LivingText` and the exported hooks on
+the client while pure text, state, timing, and geometry helpers stay callable
+from the package root on the server.
+
 ## Basic Example
 
 ```tsx

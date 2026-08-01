@@ -1,5 +1,7 @@
-import type { CSSProperties } from "react";
-import { useMemo, useRef } from "react";
+"use client";
+
+import type { CSSProperties, ReactElement } from "react";
+import * as React from "react";
 import { Blush } from "./components/Blush.js";
 import { LetterEye } from "./components/LetterEye.js";
 import { ThoughtBubble } from "./components/ThoughtBubble.js";
@@ -54,9 +56,9 @@ export function LivingText({
   seed = 1,
   className,
   style,
-}: LivingTextProps) {
-  const rootRef = useRef<HTMLSpanElement>(null);
-  const letters = useMemo(() => splitTextLetters(text), [text]);
+}: LivingTextProps): ReactElement {
+  const rootRef = React.useRef<HTMLSpanElement>(null);
+  const letters = React.useMemo(() => splitTextLetters(text), [text]);
   const primaryIndex = findLetterIndex(letters, eyeLetters.primary);
   const secondaryIndex = findLetterIndex(letters, eyeLetters.secondary);
   const hasPrimary = primaryIndex >= 0;
