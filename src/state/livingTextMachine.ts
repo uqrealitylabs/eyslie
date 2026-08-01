@@ -55,6 +55,10 @@ export type MarkedEye = {
   gaze: "left" | "up" | "right";
 };
 
+export function isEyeEmoji(grapheme: string) {
+  return grapheme === "👁" || grapheme === "👁️";
+}
+
 export function parseEyeMarkers(text: string): {
   text: string;
   letters: string[];

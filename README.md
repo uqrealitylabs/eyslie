@@ -1,7 +1,7 @@
 # eyslie
 
 Expressive living text for React: eyes on any grapheme, gaze, winks, moods,
-blush, optional smiles, thought bubbles, and original visual atmospheres.
+blush, emotion-linked mouths, thought bubbles, and original visual atmospheres.
 
 `@uqrealitylabs/eyslie` is DOM/CSS/React only. It has no canvas, animation
 framework, route logic, or bundled brand art.
@@ -33,6 +33,9 @@ label. Escape a literal marker or backslash with `\` (`\^`, `\<`, `\>`, `\\`).
 A trailing marker stays literal. When several markers precede one grapheme, the
 last direction wins.
 
+An explicit direction marker wins over the global `gaze` behaviour. Eye emoji
+are the deliberate exception: they always stay centred.
+
 ```tsx
 <LivingText
   text="W^O>W!"
@@ -45,13 +48,18 @@ last direction wins.
   expression="theatrical"
   bubbleStyle="comic"
   theme="tinyGalaxy"
-  smile
+  mouth="auto"
 />
 ```
 
 This displays and announces `WOW!`; the O looks up and the second W rests to
 the right. Marker parsing is opt-in, so ordinary `<`, `^`, and `>` text remains
 unchanged by default.
+
+The standalone `👁` and emoji-style `👁️` graphemes are always treated as a
+single classic eye. Their platform glyph is visually replaced to avoid a
+double eye, and their pupil stays centred even when tracking, scanning, or a
+direction marker is active. The emoji remains in the accessible label.
 
 The original two-anchor API remains available:
 
@@ -72,24 +80,34 @@ or behaviour:
 | Prop | Values | Default |
 | --- | --- | --- |
 | `mood` | `idleCurious`, `nearStartled`, `excited`, `blush`, `celebration`, `sadShrivel`, `recovery` | `idleCurious` |
-| `eyeShape` | `round`, `almond`, `square`, `star`, `heart`, `visor` | `round` |
-| `eyeStyle` | `classic`, `ink`, `pixel`, `neon`, `cosmic`, `paper` | `classic` |
+| `eyeShape` | `round`, `almond`, `square`, `star`, `heart`, `visor`, `diamond`, `droplet` | `round` |
+| `eyeStyle` | `classic`, `ink`, `pixel`, `neon`, `cosmic`, `paper`, `outline`, `gloss` | `classic` |
 | `gaze` | `follow`, `softFollow`, `centered`, `sideGlance`, `wander`, `scan` | `follow` |
 | `blink` | `natural`, `wink`, `none` | `natural` |
 | `expression` | `subtle`, `playful`, `theatrical` | `playful` |
 | `bubbleStyle` | `cloud`, `comic`, `whisper`, `pixel` | `cloud` |
 | `theme` | any exported `livingTextThemes` key | `classic` |
-| `smile` | boolean | `false` |
+| `mouth` | `none`, `auto`, `smile`, `grin`, `open`, `flat`, `frown`, `pout` | `none` |
+| `smile` | deprecated boolean alias for `mouth="auto"` | `false` |
 | `blush` | `"auto"`, `true`, `false` | `"auto"` |
+| `thoughtLang` | BCP-47 language tag for thought text | unset |
 
 `natural` blinks the second eye, matching the original O/U behaviour. `wink`
 cycles through all resolved eyes and works with a single eye. Inline markers
 support any number of eyes.
 
 Blush cheeks are anchored to the visible characters near each text edge rather
-than percentages of the component box. The optional smile is CSS-centred under
-the word; Eyslie is intended for single-line words and short labels, not
-paragraphs or multiline layout.
+than percentages of the component box. `blush="auto"` follows the blush mood;
+`true` and `false` override it independently. `mouth="auto"` changes lip shape
+with mood and only uses the shy pout when blush is actually visible. Eyslie is
+intended for single-line words and short labels, not paragraphs or multiline
+layout.
+
+The demo's emotion spectrum combines an explicit mood with the three-stop
+expression intensity. `getExpressionLevel(number)` clamps a 0–2 value and
+resolves the nearest `subtle`, `playful`, or `theatrical` level, then the
+complete locale phrase for that mood is selected. It never assembles translated
+fragments or infers an emotion from a country.
 
 ### Thoughts
 
@@ -103,6 +121,43 @@ Pass a partial mood map to replace or suppress the neutral defaults:
   thoughts={{ celebration: "hooray!", sadShrivel: "" }}
 />
 ```
+
+### Localized Thoughts with Seer
+
+The demo uses `@keys-i/seer` at build time to validate complete thought maps.
+Seer never enters Eyslie's browser bundle or published runtime; the selected map
+still reaches the component through the existing `thoughts` prop.
+
+Language and expression are deliberately separate. A canonical BCP-47 locale
+selects wording, while the explicit `expression` prop selects the shared
+`subtle`, `playful`, or `theatrical` tone. A country never chooses a personality
+or emotion automatically.
+
+The demo resolves an exact locale, then a compatible language and script, then
+base language when no script was requested. The `und` fallback suppresses the
+thought bubble instead of guessing a language or culturally neutral reaction.
+Starter packs are included for English, Spanish, Arabic, Japanese, and
+Simplified Chinese; do not describe other locales as translated, and have native
+speakers review copy used in a specific community.
+
+Load Seer once at build or server start, select the complete map, and serialize
+the same locale and thoughts into the first render so hydration is deterministic:
+
+```tsx
+<LivingText
+  text="^H>I"
+  eyeMarkers
+  mood="celebration"
+  expression={expression}
+  thoughts={content.eyslie.thoughts[expression]}
+  thoughtLang={locale}
+/>
+```
+
+Thought bubbles use `dir="auto"` and bounded wrapping for RTL and longer text.
+They are decorative and are not announced separately from `LivingText`'s stable
+accessible name. If a reaction conveys meaning, announce it in the surrounding
+application with a correctly tagged live region, as the demo does.
 
 ### Atmospheres and Original Worlds
 
@@ -170,7 +225,8 @@ Pixelify Sans asset; its notice remains beside the source and built asset.
 
 ## Development
 
-Repository scripts require Node.js 22.18 or newer.
+The published library supports Node.js 22.18 or newer. Repository development
+uses Node.js 24.18 or newer because Seer is a build-time tool.
 
 ```sh
 npm install

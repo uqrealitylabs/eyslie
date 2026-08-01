@@ -92,12 +92,17 @@ for (const [index, version] of versions.entries()) {
       '  ...["__proto__", "constructor", "toString"].map((mood) => ["hostile mood " + mood, { text: "JOIN US", mood }]),',
       '  ["inline eyes", { text: "<A^B>C<D^E>F", eyeMarkers: true, eyeShape: "star", eyeStyle: "cosmic", gaze: "softFollow", blink: "wink", expression: "theatrical", bubbleStyle: "comic", theme: "tinyGalaxy", smile: true, blush: true }],',
       '  ["escaped markers", { text: "\\\\< \\\\^ \\\\>", eyeMarkers: true }],',
+      '  ["eye emoji", { text: "^👁️", eyeMarkers: true, eyeShape: "diamond", eyeStyle: "gloss", gaze: "wander", blink: "wink", mouth: "auto", blush: false }],',
+      '  ["RTL thoughts", { text: "^H>I", eyeMarkers: true, mood: "excited", thoughts: { excited: "رائع!" }, thoughtLang: "ar", reducedMotion: true }],',
+      '  ["CJK thoughts", { text: "^H>I", eyeMarkers: true, mood: "celebration", thoughts: { celebration: "やったー！" }, thoughtLang: "ja", reducedMotion: true }],',
       '  ...Object.values(livingTextMoods).map((mood) => ["mood " + mood, { text: "^A>B", eyeMarkers: true, mood }]),',
       '  ...Object.keys(livingTextThemes).map((theme) => ["theme " + theme, { text: "^A>B", eyeMarkers: true, theme, reducedMotion: true }]),',
       "];",
       "const view = (props) => React.createElement(React.StrictMode, null, React.createElement(LivingText, props));",
       "const rendered = cases.map(([name, props]) => [name, props, renderToString(view(props))]);",
       'if (!rendered.find(([name]) => name === "inline eyes")?.[2].includes("aria-label=\\"ABCDEF\\"")) throw new Error("Inline marker label was not normalized");',
+      'const emojiHtml = rendered.find(([name]) => name === "eye emoji")?.[2] ?? "";',
+      'if (!emojiHtml.includes("data-eye-emoji=\\"true\\"") || emojiHtml.includes("data-rest-gaze")) throw new Error("Eye emoji was not fixed at center");',
       'const dom = new JSDOM("<!doctype html><div id=\\"root\\"></div>", { pretendToBeVisual: true });',
       "globalThis.window = dom.window;",
       "globalThis.document = dom.window.document;",
@@ -128,6 +133,26 @@ for (const [index, version] of versions.entries()) {
       '    if (!container.querySelector(".eyslie")) failures.push(name + ": CSR root missing");',
       "    await act(() => root.unmount());",
       "  }",
+      '  const container = document.getElementById("root");',
+      "  let transitionRoot;",
+      "  await act(() => {",
+      "    transitionRoot = createRoot(container);",
+      '    transitionRoot.render(view({ text: ">👁️", eyeMarkers: true, gaze: "follow" }));',
+      "  });",
+      '  const emojiEye = container.querySelector("[data-eye-role]");',
+      '  await act(() => transitionRoot.render(view({ text: ">O", eyeMarkers: true, gaze: "follow" })));',
+      '  const ordinaryEye = container.querySelector("[data-eye-role]");',
+      '  if (ordinaryEye !== emojiEye || ordinaryEye.hasAttribute("data-eye-emoji") || ordinaryEye.getAttribute("data-rest-gaze") !== "right" || ordinaryEye.style.getPropertyValue("--eyslie-pupil-x") !== "0px") failures.push("emoji transition: ordinary eye kept stale state");',
+      '  ordinaryEye.querySelector(".eyslie__inner-eye").getBoundingClientRect = () => ({ left: 0, top: 0, right: 20, bottom: 20, width: 20, height: 20, x: 0, y: 0, toJSON() {} });',
+      '  window.dispatchEvent(new dom.window.MouseEvent("pointermove", { clientX: 40, clientY: 10 }));',
+      "  await act(async () => {",
+      "    await new Promise((resolve) => window.requestAnimationFrame(resolve));",
+      "  });",
+      '  if (!ordinaryEye.style.getPropertyValue("--eyslie-pupil-x") || ordinaryEye.style.getPropertyValue("--eyslie-pupil-x") === "0px") failures.push("emoji transition: tracking did not resume");',
+      '  await act(() => transitionRoot.render(view({ text: ">👁️", eyeMarkers: true, gaze: "scan" })));',
+      '  const centeredEye = container.querySelector("[data-eye-role]");',
+      '  if (centeredEye !== emojiEye || centeredEye.getAttribute("data-eye-emoji") !== "true" || centeredEye.hasAttribute("data-rest-gaze") || centeredEye.style.getPropertyValue("--eyslie-pupil-x") !== "0px") failures.push("emoji transition: fixed center was not restored");',
+      "  await act(() => transitionRoot.unmount());",
       "} finally {",
       "  console.error = originalError;",
       "  console.warn = originalWarn;",
@@ -142,13 +167,14 @@ for (const [index, version] of versions.entries()) {
   writeFileSync(
     types,
     [
-      'import { LivingText, type EyeShape, type GazeBehavior, type LivingTextProps, type LivingTextTheme } from "@uqrealitylabs/eyslie";',
+      'import { getExpressionLevel, LivingText, type EyeShape, type GazeBehavior, type LivingTextProps, type LivingTextTheme, type MouthStyle } from "@uqrealitylabs/eyslie";',
       'const shape: EyeShape = "heart";',
       'const gaze: GazeBehavior = "wander";',
       'const theme: LivingTextTheme = "solarpunkGarden";',
-      'const props: LivingTextProps = { text: "^H>I", eyeMarkers: true, eyeShape: shape, gaze, theme, smile: true };',
+      'const mouth: MouthStyle = "auto";',
+      'const props: LivingTextProps = { text: "^H>I", eyeMarkers: true, eyeShape: shape, gaze, theme, mouth, expression: getExpressionLevel(2), thoughtLang: "en" };',
       "const view = <LivingText {...props} />;",
-      "void [LivingText, props, shape, gaze, theme, view];",
+      "void [LivingText, props, shape, gaze, theme, mouth, view];",
     ].join("\n"),
   );
   for (const [module, resolution] of [
@@ -183,6 +209,17 @@ for (const [index, version] of versions.entries()) {
       "@uqrealitylabs",
       "eyslie",
     );
+    const manifest = JSON.parse(
+      readFileSync(join(packageRoot, "package.json"), "utf8"),
+    );
+    if (
+      manifest.dependencies?.["@keys-i/seer"] ||
+      readFileSync(join(packageRoot, "dist", "index.js"), "utf8").includes(
+        "@keys-i/seer",
+      )
+    ) {
+      throw new Error("Seer must remain build-only");
+    }
     statSync(join(packageRoot, "src", "styles", "eyslie.css"));
     if (
       /^["']use client/.test(

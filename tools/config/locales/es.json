@@ -1,0 +1,31 @@
+{
+  "eyslie": {
+    "label": "Español",
+    "thoughts": {
+      "subtle": {
+        "nearStartled": "oh",
+        "excited": "bien",
+        "blush": "hola",
+        "celebration": "bien",
+        "sadShrivel": "ay",
+        "recovery": "estoy bien"
+      },
+      "playful": {
+        "nearStartled": "¡oh!",
+        "excited": "¡sí!",
+        "blush": "hola…",
+        "celebration": "¡lo logramos!",
+        "sadShrivel": "ay…",
+        "recovery": "ya estoy bien"
+      },
+      "theatrical": {
+        "nearStartled": "¡VAYA!",
+        "excited": "¡INCREÍBLE!",
+        "blush": "¡OH, HOLA!",
+        "celebration": "¡LO LOGRAMOS!",
+        "sadShrivel": "¡AY!",
+        "recovery": "¡ESTOY BIEN!"
+      }
+    }
+  }
+}

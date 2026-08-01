@@ -5,6 +5,8 @@ export const eyeShapes = [
   "star",
   "heart",
   "visor",
+  "diamond",
+  "droplet",
 ] as const;
 export type EyeShape = (typeof eyeShapes)[number];
 
@@ -15,6 +17,8 @@ export const eyeStyles = [
   "neon",
   "cosmic",
   "paper",
+  "outline",
+  "gloss",
 ] as const;
 export type EyeStyle = (typeof eyeStyles)[number];
 
@@ -33,6 +37,25 @@ export type BlinkBehavior = (typeof blinkBehaviors)[number];
 
 export const expressionLevels = ["subtle", "playful", "theatrical"] as const;
 export type ExpressionLevel = (typeof expressionLevels)[number];
+
+export function getExpressionLevel(intensity: number): ExpressionLevel {
+  const index = Number.isFinite(intensity) ? Math.round(intensity) : 1;
+  return expressionLevels[
+    Math.max(0, Math.min(expressionLevels.length - 1, index))
+  ] as ExpressionLevel;
+}
+
+export const mouthStyles = [
+  "none",
+  "auto",
+  "smile",
+  "grin",
+  "open",
+  "flat",
+  "frown",
+  "pout",
+] as const;
+export type MouthStyle = (typeof mouthStyles)[number];
 
 type LivingTextPalette = {
   idle: string;

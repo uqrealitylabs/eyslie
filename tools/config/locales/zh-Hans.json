@@ -1,0 +1,31 @@
+{
+  "eyslie": {
+    "label": "简体中文",
+    "thoughts": {
+      "subtle": {
+        "nearStartled": "哦",
+        "excited": "不错",
+        "blush": "你好…",
+        "celebration": "太好了",
+        "sadShrivel": "哎",
+        "recovery": "没事了"
+      },
+      "playful": {
+        "nearStartled": "哇！",
+        "excited": "好棒！",
+        "blush": "嗨…",
+        "celebration": "成功啦！",
+        "sadShrivel": "好痛…",
+        "recovery": "没事啦"
+      },
+      "theatrical": {
+        "nearStartled": "哇——！",
+        "excited": "太棒了！",
+        "blush": "你、你好！",
+        "celebration": "我们成功了！",
+        "sadShrivel": "好痛啊！",
+        "recovery": "满血复活！"
+      }
+    }
+  }
+}

@@ -19,7 +19,11 @@ export function useEyeTracking(
       const root = ref.current;
       if (!root) return [];
       const eyes = root.querySelectorAll<HTMLElement>("[data-eye-role]");
-      return eyes.length ? eyes : [root];
+      return eyes.length
+        ? Array.from(eyes).filter(
+            (eye) => eye.getAttribute?.("data-eye-emoji") !== "true",
+          )
+        : [root];
     };
     const setOffset = (element: HTMLElement, x: number, y: number) => {
       element.style.setProperty("--eyslie-pupil-x", `${x}px`);
@@ -33,6 +37,7 @@ export function useEyeTracking(
       reset();
       return;
     }
+    reset();
 
     let frame: number | undefined;
     let active = false;

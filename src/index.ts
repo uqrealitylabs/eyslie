@@ -35,6 +35,7 @@ export {
   getCheekAnchors,
   getOrganicWinkDelayMs,
   getThoughtForMood,
+  isEyeEmoji,
   LIVING_TEXT_BLUSH_DELAY_MS,
   livingTextMoods,
   nextLivingTextMood,
@@ -49,6 +50,7 @@ export type {
   EyeStyle,
   GazeBehavior,
   LivingTextTheme,
+  MouthStyle,
 } from "./state/livingTextOptions.js";
 export {
   blinkBehaviors,
@@ -56,5 +58,7 @@ export {
   eyeShapes,
   eyeStyles,
   gazeBehaviors,
+  getExpressionLevel,
   livingTextThemes,
+  mouthStyles,
 } from "./state/livingTextOptions.js";

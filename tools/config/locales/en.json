@@ -1,0 +1,31 @@
+{
+  "eyslie": {
+    "label": "English",
+    "thoughts": {
+      "subtle": {
+        "nearStartled": "oh",
+        "excited": "nice",
+        "blush": "hi",
+        "celebration": "yay",
+        "sadShrivel": "ow.",
+        "recovery": "okay"
+      },
+      "playful": {
+        "nearStartled": "whoa!",
+        "excited": "yes!",
+        "blush": "oh—hi",
+        "celebration": "we did it!",
+        "sadShrivel": "ouch…",
+        "recovery": "okay."
+      },
+      "theatrical": {
+        "nearStartled": "WHOA!",
+        "excited": "AMAZING!",
+        "blush": "OH—HELLO!",
+        "celebration": "WE DID IT!",
+        "sadShrivel": "OUCH!",
+        "recovery": "I'M OKAY!"
+      }
+    }
+  }
+}

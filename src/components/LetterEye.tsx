@@ -1,4 +1,5 @@
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
+import { isEyeEmoji } from "../state/livingTextMachine.js";
 import { Blush } from "./Blush.js";
 
 export type LetterEyeProps = {
@@ -18,13 +19,23 @@ export function LetterEye({
   blushSides = [],
   winking = false,
 }: LetterEyeProps): ReactElement {
+  const fixedCenter = isEyeEmoji(letter);
   return (
     <span
       className="eyslie__letter eyslie__letter--eye"
       data-eye-role={eyeRole}
       data-eye-index={eyeIndex}
-      data-rest-gaze={restGaze}
+      data-rest-gaze={fixedCenter ? undefined : restGaze}
+      data-eye-emoji={fixedCenter ? "true" : undefined}
       data-winking={winking ? "true" : "false"}
+      {...(fixedCenter
+        ? {
+            style: {
+              "--eyslie-pupil-x": "0px",
+              "--eyslie-pupil-y": "0px",
+            } as CSSProperties,
+          }
+        : {})}
     >
       <span className="eyslie__glyph">{letter}</span>
       <span className="eyslie__inner-eye" />
