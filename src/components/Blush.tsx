@@ -1,4 +1,6 @@
-export function Blush({ active }: { active: boolean }) {
+import type { ReactElement } from "react";
+
+export function Blush({ active }: { active: boolean }): ReactElement | null {
   if (!active) return null;
 
   return (

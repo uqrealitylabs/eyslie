@@ -1,3 +1,5 @@
+import type { ReactElement } from "react";
+
 export type LetterEyeProps = {
   letter: string;
   eyeRole?: "primary" | "secondary" | undefined;
@@ -8,7 +10,7 @@ export function LetterEye({
   letter,
   eyeRole = "primary",
   winking = false,
-}: LetterEyeProps) {
+}: LetterEyeProps): ReactElement {
   return (
     <span
       className="eyslie__letter eyslie__letter--eye"

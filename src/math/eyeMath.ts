@@ -8,6 +8,23 @@ export type EyeBounds = {
   height: number;
 };
 
+export type PointerRect = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+export function isPointerNear(rect: PointerRect, point: Point, radius: number) {
+  const safeRadius = Number.isFinite(radius) ? Math.max(0, radius) : 0;
+  return (
+    point.x >= rect.left - safeRadius &&
+    point.x <= rect.right + safeRadius &&
+    point.y >= rect.top - safeRadius &&
+    point.y <= rect.bottom + safeRadius
+  );
+}
+
 export function constrainPupilOffset(
   pointerX: number,
   pointerY: number,

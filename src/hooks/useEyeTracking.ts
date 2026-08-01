@@ -1,4 +1,7 @@
-import { type RefObject, useEffect } from "react";
+"use client";
+
+import type { RefObject } from "react";
+import * as React from "react";
 import { getPupilOffsetFromRect } from "../math/eyeMath.js";
 
 export function useEyeTracking(
@@ -7,7 +10,7 @@ export function useEyeTracking(
     disabled?: boolean | undefined;
   } = {},
 ) {
-  useEffect(() => {
+  React.useEffect(() => {
     const targets = () => {
       const root = ref.current;
       if (!root) return [];
@@ -28,7 +31,18 @@ export function useEyeTracking(
     }
 
     let frame: number | undefined;
+    let active = false;
     let point = { x: 0, y: 0 };
+    const cancelFrame = () => {
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      frame = undefined;
+    };
+    const resetTracking = () => {
+      cancelFrame();
+      if (!active) return;
+      active = false;
+      reset();
+    };
     const update = () => {
       frame = undefined;
       for (const element of targets()) {
@@ -42,14 +56,27 @@ export function useEyeTracking(
       }
     };
     const onPointerMove = (event: PointerEvent) => {
+      active = true;
       point = { x: event.clientX, y: event.clientY };
       if (frame === undefined) frame = window.requestAnimationFrame(update);
     };
+    const onPointerOut = (event: PointerEvent) => {
+      if (event.relatedTarget === null) resetTracking();
+    };
+    const resetEvents = ["blur", "resize", "scroll"] as const;
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("pointerout", onPointerOut, { passive: true });
+    for (const event of resetEvents) {
+      window.addEventListener(event, resetTracking, true);
+    }
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
-      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      window.removeEventListener("pointerout", onPointerOut);
+      for (const event of resetEvents) {
+        window.removeEventListener(event, resetTracking, true);
+      }
+      cancelFrame();
     };
   }, [options.disabled, ref]);
 }

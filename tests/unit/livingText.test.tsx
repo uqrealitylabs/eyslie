@@ -195,7 +195,7 @@ describe("rendering", () => {
     expect(ThoughtBubble({ children: "yay" })).toMatchObject({
       props: { className: "eyslie__thought", "aria-hidden": "true" },
     });
-    expect("style" in LetterEye({ letter: "O" }).props).toBe(false);
+    expect(LetterEye({ letter: "O" }).props).not.toHaveProperty("style");
     expect(
       LetterEye({ letter: "U", eyeRole: "secondary", winking: true }),
     ).toMatchObject({
@@ -273,11 +273,21 @@ describe("browser hooks", () => {
     (frameId) => {
       const previousWindow = globalThis.window;
       const listeners = new Map<string, (event: PointerEvent) => void>();
+      const registrations = new Map<
+        string,
+        boolean | AddEventListenerOptions | undefined
+      >();
       const frames: FrameRequestCallback[] = [];
       const cancelAnimationFrame = vi.fn();
       globalThis.window = {
-        addEventListener: (type: string, listener: EventListener) =>
-          listeners.set(type, listener as (event: PointerEvent) => void),
+        addEventListener: (
+          type: string,
+          listener: EventListener,
+          options?: boolean | AddEventListenerOptions,
+        ) => {
+          listeners.set(type, listener as (event: PointerEvent) => void);
+          registrations.set(type, options);
+        },
         removeEventListener: (type: string) => listeners.delete(type),
         requestAnimationFrame: (callback: FrameRequestCallback) => {
           frames.push(callback);
@@ -348,9 +358,32 @@ describe("browser hooks", () => {
         clientX: 10,
         clientY: 8,
       } as PointerEvent);
+      listeners.get("pointerout")?.({
+        relatedTarget: {} as EventTarget,
+      } as PointerEvent);
+      expect(cancelAnimationFrame).not.toHaveBeenCalled();
+      listeners.get("pointerout")?.({ relatedTarget: null } as PointerEvent);
+      for (const eye of eyes) {
+        expect(eye.style.setProperty).toHaveBeenCalledWith(
+          "--eyslie-pupil-x",
+          "0px",
+        );
+        expect(eye.style.setProperty).toHaveBeenCalledWith(
+          "--eyslie-pupil-y",
+          "0px",
+        );
+      }
+      expect(registrations.get("scroll")).toBe(true);
+      const writes = eyes.map((eye) => eye.style.setProperty.mock.calls.length);
+      for (const event of ["blur", "resize", "scroll"]) {
+        listeners.get(event)?.({} as PointerEvent);
+      }
+      expect(
+        eyes.map((eye) => eye.style.setProperty.mock.calls.length),
+      ).toEqual(writes);
       act(() => renderer?.unmount());
       expect(cancelAnimationFrame).toHaveBeenCalledWith(frameId);
-      expect(listeners.has("pointermove")).toBe(false);
+      expect(listeners.size).toBe(0);
 
       act(() => {
         renderer = create(<Host />);
@@ -386,9 +419,19 @@ describe("browser hooks", () => {
   it("tracks proximity transitions and resets when disabled", () => {
     const previousWindow = globalThis.window;
     const listeners = new Map<string, (event: PointerEvent) => void>();
+    const registrations = new Map<
+      string,
+      boolean | AddEventListenerOptions | undefined
+    >();
     globalThis.window = {
-      addEventListener: (type: string, listener: EventListener) =>
-        listeners.set(type, listener as (event: PointerEvent) => void),
+      addEventListener: (
+        type: string,
+        listener: EventListener,
+        options?: boolean | AddEventListenerOptions,
+      ) => {
+        listeners.set(type, listener as (event: PointerEvent) => void);
+        registrations.set(type, options);
+      },
       removeEventListener: (type: string) => listeners.delete(type),
     } as unknown as Window & typeof globalThis;
     const ref: { current: HTMLElement | null } = {
@@ -416,6 +459,33 @@ describe("browser hooks", () => {
     act(() => {
       renderer = create(<Host />);
     });
+    const moveNear = () => {
+      act(() =>
+        listeners.get("pointermove")?.({
+          clientX: 12,
+          clientY: 12,
+        } as PointerEvent),
+      );
+      expect(observed.at(-1)).toBe(true);
+    };
+    moveNear();
+    act(() =>
+      listeners.get("pointerout")?.({
+        relatedTarget: {} as EventTarget,
+      } as PointerEvent),
+    );
+    expect(observed.at(-1)).toBe(true);
+    act(() =>
+      listeners.get("pointerout")?.({ relatedTarget: null } as PointerEvent),
+    );
+    expect(observed.at(-1)).toBe(false);
+    expect(registrations.get("scroll")).toBe(true);
+    for (const event of ["blur", "resize", "scroll"]) {
+      moveNear();
+      act(() => listeners.get(event)?.({} as PointerEvent));
+      expect(observed.at(-1)).toBe(false);
+    }
+    act(() => listeners.get("blur")?.({} as PointerEvent));
     act(() =>
       listeners.get("pointermove")?.({
         clientX: 12,
@@ -441,7 +511,7 @@ describe("browser hooks", () => {
     });
     expect(observed.at(-1)).toBe(false);
     act(() => renderer?.unmount());
-    expect(listeners.has("pointermove")).toBe(false);
+    expect(listeners.size).toBe(0);
 
     globalThis.window = previousWindow;
     act(() => {

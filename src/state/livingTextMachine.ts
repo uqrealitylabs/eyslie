@@ -24,6 +24,20 @@ export type LivingTextEvent =
 
 export const LIVING_TEXT_BLUSH_DELAY_MS = 3000;
 
+export function getOrganicWinkDelayMs(seed: number, winkIndex: number) {
+  const safeSeed = Number.isFinite(seed) ? seed % 1_000_000 : 1;
+  const safeIndex = Number.isFinite(winkIndex) ? winkIndex % 1_000_000 : 0;
+  const value =
+    Math.sin((safeSeed + 1) * 12.9898 + safeIndex * 78.233) * 43758.5453;
+  const unit = value - Math.floor(value);
+
+  return Math.round(2600 + unit * 3600);
+}
+
+export function createWinkSchedule(seed: number) {
+  return (winkIndex: number) => getOrganicWinkDelayMs(seed, winkIndex);
+}
+
 export const defaultThoughts: Partial<Record<LivingTextMood, string>> = {
   nearStartled: "AWWWW",
   excited: "AWWWW",
