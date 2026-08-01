@@ -4,8 +4,14 @@ import { act, create } from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 import {
   Blush,
+  blinkBehaviors,
   constrainPupilOffset,
   createWinkSchedule,
+  expressionLevels,
+  eyeShapes,
+  eyeStyles,
+  gazeBehaviors,
+  getCheekAnchors,
   getOrganicWinkDelayMs,
   getPupilOffsetFromRect,
   getThoughtForMood,
@@ -17,10 +23,13 @@ import {
   type LivingTextMood,
   type LivingTextProps,
   livingTextMoods,
+  livingTextThemes,
   nextLivingTextMood,
+  parseEyeMarkers,
   shouldShowBlush,
   splitTextLetters,
   ThoughtBubble,
+  thoughtBubbleStyles,
   useEyeTracking,
   useProximity,
   useRandomWink,
@@ -68,6 +77,20 @@ describe("state and text", () => {
     expect(getThoughtForMood(livingTextMoods.idleCurious)).toBe("");
   });
 
+  it.each(["__proto__", "constructor", "toString", "missing"])(
+    "ignores the hostile runtime mood %s",
+    (mood) => {
+      expect(
+        getThoughtForMood(mood as LivingTextMood, {
+          [mood]: {} as string,
+        }),
+      ).toBe("");
+      expect(() =>
+        renderToString(<LivingText text="O" mood={mood as LivingTextMood} />),
+      ).not.toThrow();
+    },
+  );
+
   it.each([
     ["", []],
     ["JOIN US", ["J", "O", "I", "N", " ", "U", "S"]],
@@ -81,6 +104,47 @@ describe("state and text", () => {
     ["क्ष", ["क्ष"]],
   ])("segments graphemes in %s", (text, expected) => {
     expect(splitTextLetters(text)).toEqual(expected);
+  });
+
+  it.each([
+    [
+      "W^O>W!",
+      "WOW!",
+      [
+        { index: 1, gaze: "up" },
+        { index: 2, gaze: "right" },
+      ],
+    ],
+    ["<🙂", "🙂", [{ index: 0, gaze: "left" }]],
+    ["<^>A", "A", [{ index: 0, gaze: "right" }]],
+    ["^e\u0301", "e\u0301", [{ index: 0, gaze: "up" }]],
+    ["<🇦🇺", "🇦🇺", [{ index: 0, gaze: "left" }]],
+    ["^\\>", ">", [{ index: 0, gaze: "up" }]],
+    ["\\< \\^ \\> \\\\", "< ^ > \\", []],
+    ["A^", "A^", []],
+    ["A^^", "A^^", []],
+    ["A\\", "A\\", []],
+    ["^ ", " ", [{ index: 0, gaze: "up" }]],
+    ["plain", "plain", []],
+    ["", "", []],
+  ] as const)("parses eye markers in %s", (source, text, eyes) => {
+    expect(parseEyeMarkers(source)).toEqual({
+      text,
+      letters: splitTextLetters(text),
+      eyes,
+    });
+  });
+
+  it.each([
+    [[], null],
+    [[" ", "\n"], null],
+    [["A"], { left: 0, right: 0 }],
+    [["A", "B"], { left: 0, right: 1 }],
+    [["A", "B", "C"], { left: 1, right: 1 }],
+    [["A", "B", "C", "D"], { left: 1, right: 2 }],
+    [[" ", "🙂", " ", "🇦🇺", " "], { left: 1, right: 3 }],
+  ])("anchors cheeks near the visible edges in %j", (letters, expected) => {
+    expect(getCheekAnchors(letters)).toEqual(expected);
   });
 });
 
@@ -191,16 +255,36 @@ describe("rendering", () => {
     expect(Blush({ active: true })).toMatchObject({
       props: { className: "eyslie__blush", "aria-hidden": "true" },
     });
+    expect(Blush({ active: true, side: "left" })).toMatchObject({
+      props: {
+        className: "eyslie__cheek",
+        "data-side": "left",
+        "aria-hidden": "true",
+      },
+    });
     expect(ThoughtBubble({ children: "" })).toBeNull();
-    expect(ThoughtBubble({ children: "yay" })).toMatchObject({
-      props: { className: "eyslie__thought", "aria-hidden": "true" },
+    expect(ThoughtBubble({ children: "yay", variant: "pixel" })).toMatchObject({
+      props: {
+        className: "eyslie__thought",
+        "data-bubble-style": "pixel",
+        "aria-hidden": "true",
+      },
     });
     expect(LetterEye({ letter: "O" }).props).not.toHaveProperty("style");
     expect(
-      LetterEye({ letter: "U", eyeRole: "secondary", winking: true }),
+      LetterEye({
+        letter: "U",
+        eyeRole: "secondary",
+        eyeIndex: 4,
+        restGaze: "left",
+        blushSides: ["right"],
+        winking: true,
+      }),
     ).toMatchObject({
       props: {
         "data-eye-role": "secondary",
+        "data-eye-index": 4,
+        "data-rest-gaze": "left",
         "data-winking": "true",
       },
     });
@@ -224,6 +308,217 @@ describe("rendering", () => {
     expect(html.match(/data-eye-role/g) ?? []).toHaveLength(eyeCount);
   });
 
+  it.each([
+    ["W^O>W!", 2, "WOW!"],
+    ["<A^B>C", 3, "ABC"],
+    ["^🙂", 1, "🙂"],
+    ["\\^", 0, "^"],
+    ["A>", 0, "A&gt;"],
+    ["", 0, ""],
+  ])("renders inline eyes for %s", (text, eyeCount, label) => {
+    const html = renderToString(
+      <LivingText
+        text={text}
+        eyeMarkers
+        eyeLetters={{ primary: 0, secondary: 1 }}
+      />,
+    );
+    expect(html.match(/data-eye-role/g) ?? []).toHaveLength(eyeCount);
+    if (label) expect(html).toContain(`aria-label="${label}"`);
+    expect(html).not.toContain(`aria-label="${text}"`);
+  });
+
+  it("carries marker directions into rendered resting gaze", () => {
+    const html = renderToString(<LivingText text="<A^B>C" eyeMarkers />);
+    expect(html.match(/data-rest-gaze="left"/g) ?? []).toHaveLength(1);
+    expect(html.match(/data-rest-gaze="up"/g) ?? []).toHaveLength(1);
+    expect(html.match(/data-rest-gaze="right"/g) ?? []).toHaveLength(1);
+  });
+
+  it.each(eyeShapes)("renders the %s eye shape", (eyeShape) => {
+    const html = renderToString(
+      <LivingText text="^A" eyeMarkers eyeShape={eyeShape} />,
+    );
+    if (eyeShape === "round") expect(html).not.toContain("data-eye-shape");
+    else expect(html).toContain(`data-eye-shape="${eyeShape}"`);
+  });
+
+  it.each(eyeStyles)("renders the %s eye art style", (eyeStyle) => {
+    const html = renderToString(
+      <LivingText text="^A" eyeMarkers eyeStyle={eyeStyle} />,
+    );
+    if (eyeStyle === "classic") expect(html).not.toContain("data-eye-style");
+    else expect(html).toContain(`data-eye-style="${eyeStyle}"`);
+  });
+
+  it.each(gazeBehaviors)("renders the %s gaze behaviour", (gaze) => {
+    const html = renderToString(
+      <LivingText text="^A" eyeMarkers gaze={gaze} />,
+    );
+    if (gaze === "follow") expect(html).not.toContain("data-gaze");
+    else expect(html).toContain(`data-gaze="${gaze}"`);
+  });
+
+  it("exports every blink behaviour", () => {
+    expect(blinkBehaviors).toEqual(["natural", "wink", "none"]);
+  });
+
+  it.each(expressionLevels)("renders the %s expression level", (expression) => {
+    const html = renderToString(
+      <LivingText text="^A" eyeMarkers expression={expression} />,
+    );
+    if (expression === "playful") expect(html).not.toContain("data-expression");
+    else expect(html).toContain(`data-expression="${expression}"`);
+  });
+
+  it.each(thoughtBubbleStyles)(
+    "renders the %s thought bubble",
+    (bubbleStyle) => {
+      expect(
+        renderToString(
+          <LivingText
+            text="^A"
+            eyeMarkers
+            mood={livingTextMoods.excited}
+            bubbleStyle={bubbleStyle}
+          />,
+        ),
+      ).toContain(`data-bubble-style="${bubbleStyle}"`);
+    },
+  );
+
+  it.each(
+    Object.values(livingTextMoods).flatMap((mood) =>
+      eyeShapes.flatMap((eyeShape) =>
+        eyeStyles.map((eyeStyle) => [mood, eyeShape, eyeStyle] as const),
+      ),
+    ),
+  )("composes %s with %s/%s eyes", (mood, eyeShape, eyeStyle) => {
+    const html = renderToString(
+      <LivingText
+        text="^A>B"
+        eyeMarkers
+        mood={mood}
+        eyeShape={eyeShape}
+        eyeStyle={eyeStyle}
+        reducedMotion
+      />,
+    );
+    expect(html).toContain(`data-mood="${mood}"`);
+    expect(html).toContain('data-rest-gaze="up"');
+    expect(html).toContain('data-rest-gaze="right"');
+    if (eyeShape !== "round")
+      expect(html).toContain(`data-eye-shape="${eyeShape}"`);
+    if (eyeStyle !== "classic")
+      expect(html).toContain(`data-eye-style="${eyeStyle}"`);
+  });
+
+  it.each(Object.entries(livingTextThemes))(
+    "renders the %s atmosphere palette",
+    (theme, palette) => {
+      const html = renderToString(
+        <LivingText
+          text="^A"
+          eyeMarkers
+          theme={theme as keyof typeof livingTextThemes}
+        />,
+      );
+      if (theme === "classic") {
+        expect(html).not.toContain("data-theme");
+      } else {
+        expect(html).toContain(`data-theme="${theme}"`);
+        expect(html).toContain(palette.idle);
+        expect(html).toContain(palette.eye);
+      }
+    },
+  );
+
+  it.each([
+    [livingTextMoods.idleCurious, "", 0],
+    [livingTextMoods.nearStartled, "AWWWW", 0],
+    [livingTextMoods.excited, "AWWWW", 0],
+    [livingTextMoods.blush, "AWWWW", 2],
+    [livingTextMoods.celebration, "yay", 0],
+    [livingTextMoods.sadShrivel, "ow.", 0],
+    [livingTextMoods.recovery, "aw.", 0],
+  ])("renders the %s mood distinctly", (mood, thought, cheekCount) => {
+    const html = renderToString(<LivingText text="ABCD" mood={mood} />);
+    expect(html).toContain(`data-mood="${mood}"`);
+    expect(html.match(/eyslie__cheek/g) ?? []).toHaveLength(cheekCount);
+    if (thought) expect(html).toContain(thought);
+  });
+
+  it.each([
+    [true, livingTextMoods.idleCurious, 2],
+    [false, livingTextMoods.blush, 0],
+    ["auto", livingTextMoods.blush, 2],
+    ["auto", livingTextMoods.excited, 0],
+  ] as const)("honours blush %s in %s", (blush, mood, cheekCount) => {
+    const html = renderToString(
+      <LivingText text="A B C D" blush={blush} mood={mood} />,
+    );
+    expect(html.match(/eyslie__cheek/g) ?? []).toHaveLength(cheekCount);
+  });
+
+  it.each([true, false])("renders optional smile %s", (smile) => {
+    const html = renderToString(<LivingText text="O" smile={smile} />);
+    if (smile) expect(html).toContain('data-smile="true"');
+    else expect(html).not.toContain("data-smile");
+  });
+
+  it("falls back from an invalid runtime theme and honours color overrides", () => {
+    expect(() =>
+      renderToString(
+        <LivingText
+          text="O"
+          theme={"missing" as keyof typeof livingTextThemes}
+        />,
+      ),
+    ).not.toThrow();
+    const html = renderToString(
+      <LivingText
+        text="O"
+        idleColor="#111111"
+        excitedColor="#222222"
+        sadColor="#333333"
+        eyeColor="#444444"
+        pupilColor="#555555"
+      />,
+    );
+    for (const color of ["#111111", "#222222", "#333333", "#444444", "#555555"])
+      expect(html).toContain(color);
+  });
+
+  it("alternates a legacy side glance", () => {
+    const html = renderToString(
+      <LivingText text="OU" gaze="sideGlance" blink="none" />,
+    );
+    expect(html).toContain('data-rest-gaze="left"');
+    expect(html).toContain('data-rest-gaze="right"');
+  });
+
+  it("cycles a deliberate wink across resolved eyes", () => {
+    vi.useFakeTimers();
+    const previousWindow = globalThis.window;
+    globalThis.window = { setTimeout, clearTimeout } as unknown as Window &
+      typeof globalThis;
+    let renderer: ReturnType<typeof create> | undefined;
+    act(() => {
+      renderer = create(
+        <LivingText text="OU" gaze="centered" blink="wink" seed={12} />,
+      );
+    });
+    act(() => {
+      vi.advanceTimersByTime(getOrganicWinkDelayMs(12, 0));
+    });
+    expect(
+      renderer?.root.findAll((node) => node.props["data-winking"] === "true"),
+    ).toHaveLength(1);
+    act(() => renderer?.unmount());
+    globalThis.window = previousWindow;
+    vi.useRealTimers();
+  });
+
   it("renders custom props in SSR", () => {
     const html = renderToString(
       <LivingText
@@ -238,7 +533,7 @@ describe("rendering", () => {
     );
 
     expect(html).toContain('aria-label="Unicode eyes"');
-    expect(html).toContain("eyslie__blush");
+    expect(html).toContain("eyslie__cheek");
     expect(html).toContain("hello");
     expect(html).toContain("demo");
     expect(html).toContain("rebeccapurple");
@@ -250,6 +545,8 @@ describe("rendering", () => {
     [{ text: "JOIN US" }, "JOIN US"],
     [{ text: "JOIN US", ariaLabel: "  " }, "JOIN US"],
     [{ text: "", ariaLabel: "Living letters" }, "Living letters"],
+    [{ text: "W^O>W!", eyeMarkers: true }, "WOW!"],
+    [{ text: "^A", eyeMarkers: true, ariaLabel: "Custom eye" }, "Custom eye"],
   ] as Array<[LivingTextProps, string | undefined]>)(
     "uses accessible semantics for $0",
     (props, label) => {
@@ -326,8 +623,14 @@ describe("browser hooks", () => {
       } as unknown as HTMLElement;
       const ref = { current: root };
 
-      function Host({ disabled = false }: { disabled?: boolean }) {
-        useEyeTracking(ref, { disabled });
+      function Host({
+        disabled = false,
+        strength,
+      }: {
+        disabled?: boolean;
+        strength?: number;
+      }) {
+        useEyeTracking(ref, { disabled, strength });
         return null;
       }
 
@@ -354,6 +657,11 @@ describe("browser hooks", () => {
           expect.stringContaining("px"),
         );
       }
+      const fullStrengthX = Number.parseFloat(
+        eyes[0]?.style.setProperty.mock.calls
+          .filter(([property]) => property === "--eyslie-pupil-x")
+          .at(-1)?.[1] ?? "0",
+      );
       listeners.get("pointermove")?.({
         clientX: 10,
         clientY: 8,
@@ -384,6 +692,23 @@ describe("browser hooks", () => {
       act(() => renderer?.unmount());
       expect(cancelAnimationFrame).toHaveBeenCalledWith(frameId);
       expect(listeners.size).toBe(0);
+
+      frames.length = 0;
+      act(() => {
+        renderer = create(<Host strength={0.5} />);
+      });
+      listeners.get("pointermove")?.({
+        clientX: 40,
+        clientY: 8,
+      } as PointerEvent);
+      frames.shift()?.(0);
+      const halfStrengthX = Number.parseFloat(
+        eyes[0]?.style.setProperty.mock.calls
+          .filter(([property]) => property === "--eyslie-pupil-x")
+          .at(-1)?.[1] ?? "0",
+      );
+      expect(halfStrengthX).toBeCloseTo(fullStrengthX * 0.5);
+      act(() => renderer?.unmount());
 
       act(() => {
         renderer = create(<Host />);
@@ -524,6 +849,7 @@ describe("browser hooks", () => {
 
 describe("motion styles", () => {
   const css = readFileSync("src/styles/eyslie.css", "utf8");
+  const demoCss = readFileSync("examples/demo/src/styles.css", "utf8");
   const noPreference = css.slice(
     css.indexOf("@media (prefers-reduced-motion: no-preference)"),
     css.indexOf("@media (prefers-reduced-motion: reduce)"),
@@ -537,5 +863,64 @@ describe("motion styles", () => {
     expect(noPreference).toContain("height: 0.06em");
     expect(noPreference).toContain("opacity: 0");
     expect(reduced).not.toContain("data-winking");
+  });
+
+  it.each([
+    "nearStartled",
+    "excited",
+    "blush",
+    "celebration",
+    "sadShrivel",
+    "recovery",
+  ])("gives %s a distinct pose", (mood) => {
+    expect(css).toContain(`data-mood="${mood}"`);
+    expect(noPreference).toContain(`data-mood="${mood}"`);
+  });
+
+  it.each(eyeShapes.filter((shape) => shape !== "round"))(
+    "styles the %s eye shape",
+    (shape) => {
+      expect(css).toContain(`data-eye-shape="${shape}"`);
+    },
+  );
+
+  it.each(eyeStyles.filter((style) => style !== "classic"))(
+    "styles the %s eye art",
+    (style) => {
+      expect(css).toContain(`data-eye-style="${style}"`);
+    },
+  );
+
+  it("anchors cheeks to letters and renders real bubbles and smiles", () => {
+    expect(css).toContain(".eyslie__letter > .eyslie__cheek");
+    expect(css).not.toContain("color-mix(");
+    expect(css).toContain("var(--eyslie-blush-color)");
+    expect(css).toContain("transparent 72%");
+    expect(css).toContain("var(--eyslie-bubble-color)");
+    expect(css).toContain('data-smile="true"');
+  });
+
+  it("composes mood dimensions with shape and art variables", () => {
+    expect(css).toContain("width: var(--eyslie-eye-width)");
+    expect(css).toContain("height: var(--eyslie-eye-height)");
+    expect(css).toContain("scale(var(--eyslie-eye-scale)");
+    expect(css).toContain("--eyslie-eye-scale-y: 0.72");
+    expect(css).toContain("--eyslie-eye-rotation: -4deg");
+    expect(css).not.toMatch(
+      /data-eye-style="(?:pixel|paper)"[^{}]*\.eyslie__inner-eye\s*{[^}]*border-radius/s,
+    );
+  });
+
+  it("outlines every demo specimen against its changing surface", () => {
+    expect(demoCss).toContain("-webkit-text-stroke");
+    expect(demoCss).toContain("paint-order: stroke fill");
+    expect(demoCss).toContain("-1px -1px 0 var(--ink)");
+  });
+
+  it("gates every animation behind explicit and system motion preferences", () => {
+    expect(noPreference).toContain('data-reduced-motion="false"');
+    expect(noPreference).toContain("eyslie-wander");
+    expect(noPreference).toContain("eyslie-scan");
+    expect(reduced).toContain("--eyslie-rest-x");
   });
 });

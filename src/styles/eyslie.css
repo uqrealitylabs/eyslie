@@ -4,11 +4,39 @@
   --eyslie-sad-color: #2f6fed;
   --eyslie-eye-color: #fffaf0;
   --eyslie-pupil-color: #6b3f22;
+  --eyslie-blush-color: #ff8fa3;
+  --eyslie-bubble-color: #fffaf0;
+  --eyslie-bubble-text-color: #241c15;
+  --eyslie-eye-height: 0.35em;
+  --eyslie-eye-width: 0.46em;
+  --eyslie-eye-rotation: 0deg;
+  --eyslie-eye-scale: 1;
+  --eyslie-eye-scale-y: 1;
+  --eyslie-eye-translate-y: -50%;
+  --eyslie-hop: 0.08em;
+  --eyslie-rise: -0.08em;
+  --eyslie-tilt: 2deg;
+  --eyslie-tilt-left: -2deg;
   display: inline-flex;
   align-items: center;
   position: relative;
   color: var(--eyslie-idle-color);
   font: inherit;
+  isolation: isolate;
+}
+
+.eyslie[data-expression="subtle"] {
+  --eyslie-hop: 0.035em;
+  --eyslie-rise: -0.035em;
+  --eyslie-tilt: 0.7deg;
+  --eyslie-tilt-left: -0.7deg;
+}
+
+.eyslie[data-expression="theatrical"] {
+  --eyslie-hop: 0.14em;
+  --eyslie-rise: -0.14em;
+  --eyslie-tilt: 4deg;
+  --eyslie-tilt-left: -4deg;
 }
 
 .eyslie[data-mood="excited"],
@@ -22,21 +50,62 @@
 }
 
 .eyslie__letters {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.02em;
-  white-space: pre-wrap;
+  display: inline-block;
+  letter-spacing: 0.02em;
+  white-space: pre;
+  transform-origin: center bottom;
+}
+
+.eyslie[data-mood="nearStartled"] .eyslie__letters {
+  letter-spacing: 0.055em;
+}
+
+.eyslie[data-mood="excited"] .eyslie__letters,
+.eyslie[data-mood="celebration"] .eyslie__letters {
+  transform: translateY(-0.03em);
+}
+
+.eyslie[data-mood="blush"] .eyslie__letters {
+  transform: rotate(-1deg);
+}
+
+.eyslie[data-mood="sadShrivel"] .eyslie__letters {
+  transform: translateY(0.08em) scale(0.94, 0.82);
+}
+
+.eyslie[data-mood="recovery"] .eyslie__letters {
+  opacity: 0.9;
 }
 
 .eyslie__letter {
-  display: inline-block;
+  display: inline;
   position: relative;
   line-height: 1;
+  transform-origin: center bottom;
+}
+
+.eyslie__letter--eye,
+.eyslie__letter[data-cheek="true"] {
+  display: inline-block;
 }
 
 .eyslie__letter--eye {
   min-width: 0.72em;
   text-align: center;
+  --eyslie-rest-x: 0em;
+  --eyslie-rest-y: 0em;
+}
+
+.eyslie__letter--eye[data-rest-gaze="left"] {
+  --eyslie-rest-x: -0.1em;
+}
+
+.eyslie__letter--eye[data-rest-gaze="right"] {
+  --eyslie-rest-x: 0.1em;
+}
+
+.eyslie__letter--eye[data-rest-gaze="up"] {
+  --eyslie-rest-y: -0.075em;
 }
 
 .eyslie__glyph {
@@ -51,19 +120,16 @@
   left: 50%;
   top: 50%;
   border-radius: 999px;
-  transform: translate(-50%, -50%);
 }
 
 .eyslie__inner-eye {
   z-index: 2;
-  width: 0.46em;
-  height: 0.35em;
+  width: var(--eyslie-eye-width);
+  height: var(--eyslie-eye-height);
   background: var(--eyslie-eye-color);
-}
-
-.eyslie[data-mood="sadShrivel"] .eyslie__inner-eye {
-  height: 0.28em;
-  transform: translate(-50%, -42%) scaleY(0.78);
+  transform: translate(-50%, var(--eyslie-eye-translate-y))
+    rotate(var(--eyslie-eye-rotation))
+    scale(var(--eyslie-eye-scale), var(--eyslie-eye-scale-y));
 }
 
 .eyslie__pupil {
@@ -72,73 +138,430 @@
   height: 0.16em;
   background: var(--eyslie-pupil-color);
   transform: translate(
-    calc(-50% + var(--eyslie-pupil-x, 0px)),
-    calc(-50% + var(--eyslie-pupil-y, 0px))
+    calc(-50% + var(--eyslie-rest-x) + var(--eyslie-pupil-x, 0px)),
+    calc(-50% + var(--eyslie-rest-y) + var(--eyslie-pupil-y, 0px))
   );
 }
 
-.eyslie__thought {
+.eyslie[data-mood="nearStartled"] {
+  --eyslie-eye-scale: 1.17;
+}
+
+.eyslie[data-mood="excited"] .eyslie__pupil,
+.eyslie[data-mood="celebration"] .eyslie__pupil {
+  width: 0.19em;
+  height: 0.19em;
+}
+
+.eyslie[data-mood="sadShrivel"] {
+  --eyslie-eye-scale-y: 0.72;
+  --eyslie-eye-translate-y: -38%;
+}
+
+.eyslie[data-mood="sadShrivel"] .eyslie__pupil {
+  top: 57%;
+}
+
+.eyslie[data-eye-shape="almond"] {
+  --eyslie-eye-rotation: -4deg;
+}
+
+.eyslie[data-eye-shape="almond"] .eyslie__inner-eye {
+  border-radius: 70% 16%;
+}
+
+.eyslie[data-eye-shape="square"] .eyslie__inner-eye {
+  border-radius: 0.055em;
+}
+
+.eyslie[data-eye-shape="star"] {
+  --eyslie-eye-height: 0.5em;
+  --eyslie-eye-width: 0.5em;
+}
+
+.eyslie[data-eye-shape="star"] .eyslie__inner-eye {
+  border-radius: 0;
+  clip-path: polygon(
+    50% 0%,
+    61% 34%,
+    98% 35%,
+    68% 56%,
+    79% 94%,
+    50% 72%,
+    21% 94%,
+    32% 56%,
+    2% 35%,
+    39% 34%
+  );
+}
+
+.eyslie[data-eye-shape="heart"] {
+  --eyslie-eye-height: 0.43em;
+  --eyslie-eye-width: 0.48em;
+}
+
+.eyslie[data-eye-shape="heart"] .eyslie__inner-eye {
+  border-radius: 0;
+  clip-path: polygon(
+    50% 94%,
+    8% 54%,
+    3% 28%,
+    15% 7%,
+    38% 5%,
+    50% 20%,
+    62% 5%,
+    85% 7%,
+    97% 28%,
+    92% 54%
+  );
+}
+
+.eyslie[data-eye-shape="visor"] {
+  --eyslie-eye-height: 0.23em;
+  --eyslie-eye-width: 0.66em;
+}
+
+.eyslie[data-eye-shape="visor"] .eyslie__inner-eye {
+  border-radius: 0.08em;
+}
+
+.eyslie[data-eye-style="ink"] .eyslie__inner-eye {
+  outline: 0.035em solid currentColor;
+  box-shadow: inset 0.035em -0.025em 0 rgb(0 0 0 / 18%);
+}
+
+.eyslie[data-eye-style="pixel"] .eyslie__inner-eye,
+.eyslie[data-eye-style="pixel"] .eyslie__pupil {
+  box-shadow: 0.035em 0.035em 0 currentColor;
+}
+
+.eyslie[data-eye-style="pixel"] .eyslie__pupil {
+  border-radius: 0;
+}
+
+.eyslie[data-eye-style="neon"] .eyslie__inner-eye {
+  outline: 0.025em solid currentColor;
+  box-shadow: 0 0 0.16em currentColor;
+}
+
+.eyslie[data-eye-style="neon"] .eyslie__pupil {
+  box-shadow: 0 0 0.12em var(--eyslie-pupil-color);
+}
+
+.eyslie[data-eye-style="cosmic"] .eyslie__inner-eye {
+  background: radial-gradient(
+    circle at 30% 25%,
+    #fff 0 5%,
+    var(--eyslie-eye-color) 7% 28%,
+    var(--eyslie-pupil-color) 70% 100%
+  );
+  box-shadow: 0 0 0.12em rgb(167 139 250 / 70%);
+}
+
+.eyslie[data-eye-style="paper"] .eyslie__inner-eye {
+  border: 0.025em dashed currentColor;
+  box-shadow: 0.025em 0.035em 0 rgb(0 0 0 / 16%);
+}
+
+.eyslie__cheek {
   position: absolute;
-  left: 50%;
-  top: -1.3em;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  font-size: 0.32em;
-  line-height: 1;
+  z-index: 4;
+  bottom: -0.22em;
+  width: 0.42em;
+  height: 0.2em;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    var(--eyslie-blush-color),
+    transparent 72%
+  );
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+.eyslie__letter > .eyslie__cheek[data-side="left"] {
+  inset-inline-start: -0.16em;
+  transform: rotate(-9deg);
+}
+
+.eyslie__letter > .eyslie__cheek[data-side="right"] {
+  inset-inline-end: -0.16em;
+  transform: rotate(9deg);
 }
 
 .eyslie__blush {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -0.24em;
+  inset: auto 0 -0.24em;
   height: 0.24em;
   pointer-events: none;
 }
 
-.eyslie__blush span {
-  position: absolute;
-  top: 0;
-  width: 0.32em;
-  height: 0.16em;
-  border-radius: 999px;
-  background: radial-gradient(
-    circle,
-    rgb(255 143 163 / 56%),
-    rgb(255 143 163 / 0%)
-  );
-  filter: blur(0.02em);
-  opacity: 0.52;
-}
-
-.eyslie__blush span:first-child {
+.eyslie__blush .eyslie__cheek[data-side="left"] {
   left: 12%;
-  transform: translateX(-50%) rotate(-8deg);
 }
 
-.eyslie__blush span:last-child {
+.eyslie__blush .eyslie__cheek[data-side="right"] {
   right: 12%;
-  transform: translateX(50%) rotate(8deg);
+}
+
+.eyslie__thought {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: -1.25em;
+  padding: 0.36em 0.62em;
+  border: 0.07em solid currentColor;
+  border-radius: 999px;
+  color: var(--eyslie-bubble-text-color);
+  background: var(--eyslie-bubble-color);
+  box-shadow: 0.1em 0.1em 0 rgb(0 0 0 / 14%);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: max(0.27em, 0.72rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.eyslie__thought::after {
+  content: "";
+  position: absolute;
+  left: 46%;
+  bottom: -0.32em;
+  width: 0.42em;
+  height: 0.36em;
+  border-right: 0.07em solid currentColor;
+  border-bottom: 0.07em solid currentColor;
+  background: var(--eyslie-bubble-color);
+  transform: skew(12deg) rotate(35deg);
+}
+
+.eyslie__thought[data-bubble-style="comic"] {
+  border-radius: 0.28em;
+  transform: translateX(-50%) rotate(-2deg);
+}
+
+.eyslie__thought[data-bubble-style="whisper"] {
+  border-style: dashed;
+  box-shadow: none;
+  font-weight: 500;
+  opacity: 0.88;
+}
+
+.eyslie__thought[data-bubble-style="pixel"] {
+  border-radius: 0;
+  box-shadow: 0.18em 0.18em 0 currentColor;
+}
+
+.eyslie[data-smile="true"]::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: -0.32em;
+  width: 0.7em;
+  height: 0.28em;
+  border-bottom: 0.07em solid currentColor;
+  border-radius: 0 0 50% 50%;
+  transform: translateX(-50%);
+}
+
+.eyslie[data-smile="true"][data-mood="nearStartled"]::after {
+  width: 0.2em;
+  height: 0.2em;
+  border: 0.055em solid currentColor;
+  border-radius: 50%;
+}
+
+.eyslie[data-smile="true"][data-mood="sadShrivel"]::after {
+  bottom: -0.45em;
+  border-top: 0.07em solid currentColor;
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0;
 }
 
 .eyslie[data-reduced-motion="true"] .eyslie__pupil {
-  transform: translate(-50%, -50%);
+  transform: translate(
+    calc(-50% + var(--eyslie-rest-x)),
+    calc(-50% + var(--eyslie-rest-y))
+  );
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .eyslie__letter[data-eye-role="secondary"][data-winking="true"]
-    .eyslie__inner-eye {
+  .eyslie[data-reduced-motion="false"] .eyslie__letters,
+  .eyslie[data-reduced-motion="false"] .eyslie__letter,
+  .eyslie[data-reduced-motion="false"] .eyslie__inner-eye,
+  .eyslie[data-reduced-motion="false"] .eyslie__pupil,
+  .eyslie[data-reduced-motion="false"] .eyslie__thought {
+    transition:
+      transform 240ms ease,
+      width 180ms ease,
+      height 180ms ease,
+      opacity 180ms ease,
+      letter-spacing 180ms ease;
+  }
+
+  .eyslie[data-reduced-motion="false"][data-mood="nearStartled"]
+    .eyslie__letters {
+    animation: eyslie-startle 420ms cubic-bezier(0.2, 1.8, 0.4, 1);
+  }
+
+  .eyslie[data-reduced-motion="false"][data-mood="excited"] .eyslie__letters {
+    animation: eyslie-bob 780ms ease-in-out infinite;
+  }
+
+  .eyslie[data-reduced-motion="false"][data-mood="blush"] .eyslie__letters {
+    animation: eyslie-sway 1600ms ease-in-out infinite;
+  }
+
+  .eyslie[data-reduced-motion="false"][data-mood="celebration"]
+    .eyslie__letters {
+    animation: eyslie-hop 680ms ease-in-out infinite alternate;
+  }
+
+  .eyslie[data-reduced-motion="false"][data-mood="sadShrivel"]
+    .eyslie__letters {
+    animation: eyslie-droop 2100ms ease-in-out infinite;
+  }
+
+  .eyslie[data-reduced-motion="false"][data-mood="recovery"] .eyslie__letters {
+    animation: eyslie-recover 720ms ease-out;
+  }
+
+  .eyslie[data-reduced-motion="false"] .eyslie__thought {
+    animation: eyslie-thought 260ms cubic-bezier(0.2, 1.5, 0.4, 1);
+  }
+
+  .eyslie[data-reduced-motion="false"][data-gaze="wander"] .eyslie__pupil {
+    animation: eyslie-wander 2600ms ease-in-out infinite alternate;
+  }
+
+  .eyslie[data-reduced-motion="false"][data-gaze="scan"] .eyslie__pupil {
+    animation: eyslie-scan 1600ms ease-in-out infinite alternate;
+  }
+
+  .eyslie__letter[data-winking="true"] .eyslie__inner-eye {
     height: 0.06em;
   }
 
-  .eyslie__letter[data-eye-role="secondary"][data-winking="true"]
-    .eyslie__pupil {
+  .eyslie__letter[data-winking="true"] .eyslie__pupil {
     opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .eyslie__pupil {
-    transform: translate(-50%, -50%);
+    transform: translate(
+      calc(-50% + var(--eyslie-rest-x)),
+      calc(-50% + var(--eyslie-rest-y))
+    );
+  }
+}
+
+@keyframes eyslie-startle {
+  0% {
+    transform: scale(0.94);
+  }
+  55% {
+    transform: scale(1.07);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes eyslie-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(var(--eyslie-rise));
+  }
+}
+
+@keyframes eyslie-sway {
+  0%,
+  100% {
+    transform: rotate(var(--eyslie-tilt-left));
+  }
+  50% {
+    transform: rotate(var(--eyslie-tilt));
+  }
+}
+
+@keyframes eyslie-hop {
+  from {
+    transform: translateY(0) rotate(var(--eyslie-tilt-left));
+  }
+  to {
+    transform: translateY(var(--eyslie-rise)) rotate(var(--eyslie-tilt));
+  }
+}
+
+@keyframes eyslie-droop {
+  0%,
+  100% {
+    transform: translateY(0.08em) scale(0.94, 0.82);
+  }
+  50% {
+    transform: translateY(0.12em) scale(0.92, 0.78);
+  }
+}
+
+@keyframes eyslie-recover {
+  from {
+    transform: translateY(0.1em) scale(0.94, 0.82);
+    opacity: 0.7;
+  }
+  to {
+    transform: none;
+    opacity: 0.9;
+  }
+}
+
+@keyframes eyslie-thought {
+  from {
+    transform: translateX(-50%) translateY(0.2em) scale(0.75);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes eyslie-wander {
+  0% {
+    margin: -0.045em 0 0 -0.08em;
+  }
+  45% {
+    margin: 0.04em -0.07em 0 0;
+  }
+  100% {
+    margin: -0.025em 0 0 0.07em;
+  }
+}
+
+@keyframes eyslie-scan {
+  from {
+    margin-left: -0.1em;
+  }
+  to {
+    margin-left: 0.1em;
+  }
+}
+
+@media (forced-colors: active) {
+  .eyslie__inner-eye,
+  .eyslie__thought,
+  .eyslie__thought::after {
+    forced-color-adjust: auto;
+    border-color: CanvasText;
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .eyslie__pupil {
+    background: CanvasText;
   }
 }
