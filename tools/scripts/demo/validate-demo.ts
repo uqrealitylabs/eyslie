@@ -18,7 +18,7 @@ if (existsSync(htmlPath)) {
   for (const text of ["Eyslie", "assets/"]) {
     if (!html.includes(text)) issues.push(`built demo is missing ${text}`);
   }
-  if (html.includes("esm.sh") || html.includes("unpkg.com"))
+  if (/<script\b[^>]*\btype\s*=\s*["']importmap["']/i.test(html))
     issues.push("demo must not use a CDN import map");
   const localUrls = Array.from(
     html.matchAll(/(?:href|src)="([^"]+)"/g),
