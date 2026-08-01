@@ -1,7 +1,12 @@
+export type { BlushProps } from "./components/Blush.js";
 export { Blush } from "./components/Blush.js";
 export type { LetterEyeProps } from "./components/LetterEye.js";
 export { LetterEye } from "./components/LetterEye.js";
-export { ThoughtBubble } from "./components/ThoughtBubble.js";
+export type { ThoughtBubbleStyle } from "./components/ThoughtBubble.js";
+export {
+  ThoughtBubble,
+  thoughtBubbleStyles,
+} from "./components/ThoughtBubble.js";
 export { useEyeTracking } from "./hooks/useEyeTracking.js";
 export { useProximity } from "./hooks/useProximity.js";
 export { useRandomWink } from "./hooks/useRandomWink.js";
@@ -18,17 +23,38 @@ export {
   isPointerNear,
 } from "./math/eyeMath.js";
 export type {
+  EyeMarker,
   LivingTextEvent,
   LivingTextMood,
+  MarkedEye,
 } from "./state/livingTextMachine.js";
 export {
   createWinkSchedule,
   defaultThoughts,
+  eyeMarkers,
+  getCheekAnchors,
   getOrganicWinkDelayMs,
   getThoughtForMood,
   LIVING_TEXT_BLUSH_DELAY_MS,
   livingTextMoods,
   nextLivingTextMood,
+  parseEyeMarkers,
   shouldShowBlush,
   splitTextLetters,
 } from "./state/livingTextMachine.js";
+export type {
+  BlinkBehavior,
+  ExpressionLevel,
+  EyeShape,
+  EyeStyle,
+  GazeBehavior,
+  LivingTextTheme,
+} from "./state/livingTextOptions.js";
+export {
+  blinkBehaviors,
+  expressionLevels,
+  eyeShapes,
+  eyeStyles,
+  gazeBehaviors,
+  livingTextThemes,
+} from "./state/livingTextOptions.js";

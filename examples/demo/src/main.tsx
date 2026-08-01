@@ -1,161 +1,495 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  blinkBehaviors,
+  expressionLevels,
+  eyeShapes,
+  eyeStyles,
+  gazeBehaviors,
   LivingText,
-  livingTextMoods,
+  type BlinkBehavior,
+  type ExpressionLevel,
+  type EyeShape,
+  type EyeStyle,
+  type GazeBehavior,
   type LivingTextMood,
+  type LivingTextTheme,
+  livingTextMoods,
+  livingTextThemes,
+  type ThoughtBubbleStyle,
+  thoughtBubbleStyles,
 } from "../../../dist/index.js";
 import "@uqrealitylabs/eyslie/styles.css";
 import "./styles.css";
 
 const moodOptions: LivingTextMood[] = Object.values(livingTextMoods);
+const themeOptions = Object.keys(livingTextThemes) as LivingTextTheme[];
+const demoThoughts: Partial<Record<LivingTextMood, string>> = {
+  nearStartled: "whoa!",
+  excited: "yes!",
+  blush: "oh—hi",
+  celebration: "we did it!",
+  sadShrivel: "ouch…",
+  recovery: "okay.",
+};
 
-const defaultCode = `<LivingText
-  text="JOIN US"
-  mood={livingTextMoods.idleCurious}
-  eyeLetters={{ primary: "O", secondary: "U" }}
-/>`;
+type Preset = {
+  name: string;
+  note: string;
+  text: string;
+  theme: LivingTextTheme;
+  shape: EyeShape;
+  eyeStyle: EyeStyle;
+  gaze: GazeBehavior;
+  bubble: ThoughtBubbleStyle;
+};
+
+const presets: Preset[] = [
+  {
+    name: "Harbour dawn",
+    note: "salt air / soft focus",
+    text: "S^E>A",
+    theme: "harbourDawn",
+    shape: "almond",
+    eyeStyle: "paper",
+    gaze: "softFollow",
+    bubble: "whisper",
+  },
+  {
+    name: "Tiny galaxy",
+    note: "pocket-sized wonder",
+    text: "W^O>W",
+    theme: "tinyGalaxy",
+    shape: "star",
+    eyeStyle: "cosmic",
+    gaze: "wander",
+    bubble: "cloud",
+  },
+  {
+    name: "Retro arcade",
+    note: "bright / bleepy / bold",
+    text: "P<L>A>Y",
+    theme: "retroArcade",
+    shape: "square",
+    eyeStyle: "pixel",
+    gaze: "scan",
+    bubble: "pixel",
+  },
+  {
+    name: "Storybook ink",
+    note: "wobbly lines / warm paper",
+    text: "O^N>C>E",
+    theme: "storybookInk",
+    shape: "round",
+    eyeStyle: "ink",
+    gaze: "sideGlance",
+    bubble: "comic",
+  },
+  {
+    name: "Solar garden",
+    note: "sunny, leafy optimism",
+    text: "G^R>O<W",
+    theme: "solarpunkGarden",
+    shape: "heart",
+    eyeStyle: "classic",
+    gaze: "follow",
+    bubble: "cloud",
+  },
+  {
+    name: "City after dark",
+    note: "electric night energy",
+    text: "H<E>Y!",
+    theme: "cityAfterDark",
+    shape: "visor",
+    eyeStyle: "neon",
+    gaze: "scan",
+    bubble: "comic",
+  },
+];
 
 function App() {
-  const [text, setText] = useState("JOIN US");
-  const [mood, setMood] = useState<LivingTextMood>(livingTextMoods.idleCurious);
+  const [text, setText] = useState("W^O>W!");
+  const [mood, setMood] = useState<LivingTextMood>(livingTextMoods.excited);
+  const [theme, setTheme] = useState<LivingTextTheme>("retroArcade");
+  const [shape, setShape] = useState<EyeShape>("star");
+  const [eyeStyle, setEyeStyle] = useState<EyeStyle>("cosmic");
+  const [gaze, setGaze] = useState<GazeBehavior>("follow");
+  const [blink, setBlink] = useState<BlinkBehavior>("wink");
+  const [expression, setExpression] =
+    useState<ExpressionLevel>("theatrical");
+  const [bubble, setBubble] = useState<ThoughtBubbleStyle>("comic");
+  const [smile, setSmile] = useState(true);
+  const [blush, setBlush] = useState<boolean | "auto">("auto");
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [copyStatus, setCopyStatus] = useState("Copy example");
 
   function reset() {
-    setText("JOIN US");
-    setMood(livingTextMoods.idleCurious);
+    setText("W^O>W!");
+    setMood(livingTextMoods.excited);
+    setTheme("retroArcade");
+    setShape("star");
+    setEyeStyle("cosmic");
+    setGaze("follow");
+    setBlink("wink");
+    setExpression("theatrical");
+    setBubble("comic");
+    setSmile(true);
+    setBlush("auto");
     setReducedMotion(false);
-    setCopyStatus("Copy example");
   }
 
-  async function copyExample() {
-    if (!navigator.clipboard) {
-      setCopyStatus("Clipboard unavailable");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(defaultCode);
-      setCopyStatus("Copied");
-      window.setTimeout(() => setCopyStatus("Copy example"), 1600);
-    } catch {
-      setCopyStatus("Copy failed");
-    }
+  function usePreset(preset: Preset) {
+    setText(preset.text);
+    setTheme(preset.theme);
+    setShape(preset.shape);
+    setEyeStyle(preset.eyeStyle);
+    setGaze(preset.gaze);
+    setBubble(preset.bubble);
   }
 
   return (
     <div className="demo-shell">
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Eyslie home">
-          <span className="brand-mark" aria-hidden="true">◎</span>
-          <span>UQ Reality Labs / Eyslie</span>
+          <span className="brand-face" aria-hidden="true">
+            ◉‿◉
+          </span>
+          <span>Eyslie</span>
         </a>
         <nav aria-label="Primary navigation">
-          <a href="#playground">Playground</a>
-          <a href="#how-it-works">How it works</a>
-          <a href="https://github.com/uqrealitylabs/eyslie" rel="noreferrer">GitHub</a>
+          <a href="#lab">Expression lab</a>
+          <a href="#worlds">Worlds</a>
+          <a href="https://github.com/uqrealitylabs/eyslie" rel="noreferrer">
+            GitHub ↗
+          </a>
         </nav>
       </header>
 
       <main id="top">
-        <section className="hero section-grid">
+        <section className="hero">
           <div className="hero-copy">
-            <p className="eyebrow">REACT / LIVING TEXT / ANCHORED EYES</p>
-            <h1>Eyslie</h1>
-            <p className="hero-lede">Letters that notice, blink, blush, and answer back.</p>
-            <p className="hero-body">
-              A small React package for expressive words and short labels. Keep the text readable, then add eye geometry and mood as a layer.
+            <p className="kicker">LIVING TEXT FOR REACT</p>
+            <h1>Put eyes on anything.</h1>
+            <p className="hero-lede">
+              Point. Blink. Blush. Wonder. Turn any grapheme into an eye and
+              give short words a surprisingly big personality.
             </p>
             <div className="hero-actions">
-              <a className="button button-primary" href="#playground">Try the letters</a>
-              <a className="button button-quiet" href="#install">Install package</a>
+              <a className="button button-primary" href="#lab">
+                Make a face ↓
+              </a>
+              <code>npm i @uqrealitylabs/eyslie</code>
             </div>
           </div>
-          <div className="hero-note" aria-label="Eyslie design note">
-            <span className="note-line">O keeps its glyph.</span>
-            <span className="note-line">U owns the wink.</span>
-            <span className="note-line">No eyebrow required.</span>
+          <div className="hero-creature">
+            <span className="burst burst-one" aria-hidden="true">
+              ✦
+            </span>
+            <LivingText
+              text="H^E>Y!"
+              eyeMarkers
+              mood={livingTextMoods.celebration}
+              theme="cityAfterDark"
+              eyeShape="heart"
+              eyeStyle="neon"
+              gaze="wander"
+              blink="wink"
+              expression="theatrical"
+              smile
+              thoughts={{ celebration: "hello!" }}
+            />
+            <span className="burst burst-two" aria-hidden="true">
+              ✺
+            </span>
           </div>
         </section>
 
-        <section className="playground section-block" id="playground" aria-labelledby="playground-title">
-          <div className="section-heading">
-            <p className="eyebrow">LIVE PLAYGROUND</p>
-            <h2 id="playground-title">Give a word a point of view.</h2>
-            <p>Change the public component inputs and watch the actual package respond.</p>
+        <section className="marker-strip" aria-labelledby="marker-title">
+          <div>
+            <p className="kicker">THE TINY SYNTAX</p>
+            <h2 id="marker-title">Aim the next character.</h2>
           </div>
-          <div className="playground-layout">
-            <div className="living-stage">
-              <div className="stage-label">Rendered with <code>LivingText</code></div>
-              <div className="living-word" data-testid="living-text-demo">
-                <LivingText
-                  text={text || " "}
-                  ariaLabel={text || "Living text"}
-                  mood={mood}
-                  eyeLetters={{ primary: "O", secondary: "U" }}
-                  thoughts={{ nearStartled: "AWWWW", celebration: "yay", sadShrivel: "aw." }}
-                  reducedMotion={reducedMotion}
-                />
+          <div className="marker-list">
+            <span>
+              <code>&lt;</code> looks left
+            </span>
+            <span>
+              <code>^</code> looks up
+            </span>
+            <span>
+              <code>&gt;</code> looks right
+            </span>
+          </div>
+          <p>
+            Markers disappear from the visible and spoken word. Escape a
+            literal marker with <code>{"\\^"}</code>. A trailing marker stays
+            literal.
+          </p>
+        </section>
+
+        <section className="lab section-block" id="lab" aria-labelledby="lab-title">
+          <div className="section-heading">
+            <p className="kicker">EXPRESSION LAB</p>
+            <h2 id="lab-title">Make it feel alive.</h2>
+            <p>
+              Move your pointer around the stage, then mix shape, motion, mood,
+              art and atmosphere. Every control below is a real public prop.
+            </p>
+          </div>
+
+          <div className="lab-layout">
+            <div
+              className="living-stage"
+              onPointerEnter={() =>
+                setMood((current) =>
+                  current === livingTextMoods.idleCurious
+                    ? livingTextMoods.nearStartled
+                    : current,
+                )
+              }
+              onPointerLeave={() =>
+                setMood((current) =>
+                  current === livingTextMoods.nearStartled
+                    ? livingTextMoods.idleCurious
+                    : current,
+                )
+              }
+            >
+              <div className="stage-topline">
+                <span>LIVE SPECIMEN</span>
+                <span className="live-dot">● running</span>
               </div>
-              <p className="stage-status">
-                Move the pointer around the word to aim the pupils; the U blinks on its seeded schedule.
+              <div className="stage-scroll">
+                <div className="living-word" data-testid="living-text-demo">
+                  <LivingText
+                    text={text || " "}
+                    ariaLabel={text ? undefined : "Empty living text"}
+                    eyeMarkers
+                    mood={mood}
+                    theme={theme}
+                    eyeShape={shape}
+                    eyeStyle={eyeStyle}
+                    gaze={gaze}
+                    blink={blink}
+                    expression={expression}
+                    bubbleStyle={bubble}
+                    thoughts={demoThoughts}
+                    smile={smile}
+                    blush={blush}
+                    reducedMotion={reducedMotion}
+                  />
+                </div>
+              </div>
+              <p className="stage-status" aria-live="polite">
+                {formatLabel(mood)} · {formatLabel(theme)} · {formatLabel(shape)}
               </p>
             </div>
 
-            <div className="control-panel">
-              <div className="control-panel-heading">
+            <form className="control-panel" onSubmit={(event) => event.preventDefault()}>
+              <div className="panel-heading">
                 <div>
-                  <p className="eyebrow">PUBLIC PROPS</p>
-                  <h3>Shape the response</h3>
+                  <p className="kicker">YOUR MIX</p>
+                  <h3>Direct the character</h3>
                 </div>
-                <button className="text-button" type="button" onClick={reset}>Reset</button>
+                <button className="text-button" type="button" onClick={reset}>
+                  Reset
+                </button>
               </div>
 
-              <label className="control-field">
-                <span>Text</span>
-                <input value={text} maxLength={24} onChange={(event) => setText(event.target.value)} />
+              <label className="control-field control-wide">
+                <span>Marked-up text</span>
+                <input
+                  value={text}
+                  maxLength={18}
+                  spellCheck="false"
+                  onChange={(event) => setText(event.target.value)}
+                />
+                <small>Try C^O&gt;O&lt;L or put an eye on emoji.</small>
               </label>
-              <label className="control-field">
-                <span>Mood state</span>
-                <select value={mood} onChange={(event) => setMood(event.target.value as LivingTextMood)}>
-                  {moodOptions.map((option) => <option value={option} key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label className="check-field"><input type="checkbox" checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} /><span>Reduced motion</span></label>
-            </div>
+
+              <fieldset className="mood-field control-wide">
+                <legend>Mood</legend>
+                <div className="mood-options">
+                  {moodOptions.map((option) => (
+                    <label key={option}>
+                      <input
+                        type="radio"
+                        name="mood"
+                        value={option}
+                        checked={mood === option}
+                        onChange={() => setMood(option)}
+                      />
+                      <span>{formatLabel(option)}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="control-grid control-wide">
+                <SelectControl
+                  label="Atmosphere"
+                  value={theme}
+                  options={themeOptions}
+                  onChange={setTheme}
+                />
+                <SelectControl
+                  label="Eye shape"
+                  value={shape}
+                  options={eyeShapes}
+                  onChange={setShape}
+                />
+                <SelectControl
+                  label="Eye art"
+                  value={eyeStyle}
+                  options={eyeStyles}
+                  onChange={setEyeStyle}
+                />
+                <SelectControl
+                  label="Gaze behaviour"
+                  value={gaze}
+                  options={gazeBehaviors}
+                  onChange={setGaze}
+                />
+                <SelectControl
+                  label="Blink"
+                  value={blink}
+                  options={blinkBehaviors}
+                  onChange={setBlink}
+                />
+                <SelectControl
+                  label="Expression"
+                  value={expression}
+                  options={expressionLevels}
+                  onChange={setExpression}
+                />
+                <SelectControl
+                  label="Thought bubble"
+                  value={bubble}
+                  options={thoughtBubbleStyles}
+                  onChange={setBubble}
+                />
+                <SelectControl
+                  label="Blush"
+                  value={blush === true ? "on" : blush === false ? "off" : "auto"}
+                  options={["auto", "on", "off"] as const}
+                  onChange={(value) =>
+                    setBlush(value === "auto" ? "auto" : value === "on")
+                  }
+                />
+              </div>
+
+              <div className="toggle-row control-wide">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={smile}
+                    onChange={(event) => setSmile(event.target.checked)}
+                  />
+                  <span>Smile</span>
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={reducedMotion}
+                    onChange={(event) => setReducedMotion(event.target.checked)}
+                  />
+                  <span>Reduced motion</span>
+                </label>
+              </div>
+            </form>
           </div>
         </section>
 
-        <section className="feature-section section-block" id="how-it-works" aria-labelledby="features-title">
-          <div className="section-heading">
-            <p className="eyebrow">SMALL API / USEFUL BOUNDARIES</p>
-            <h2 id="features-title">The playful bits stay composable.</h2>
+        <section className="worlds section-block" id="worlds" aria-labelledby="worlds-title">
+          <div className="worlds-copy">
+            <p className="kicker">ORIGINAL WORLDS</p>
+            <h2 id="worlds-title">Atmosphere without stereotypes.</h2>
+            <p>
+              Place-inspired palettes and imagination-first genres change the
+              visual atmosphere—not what a culture is supposed to feel. Bring
+              your own palette for a specific community, story or brand.
+            </p>
           </div>
-          <div className="feature-grid">
-            <article className="feature-item"><span className="feature-number">01</span><h3>Anchored eyes</h3><p>O and U anchors are explicit and recalculated from local letter bounds, so overlays do not jump to the page corner.</p></article>
-            <article className="feature-item"><span className="feature-number">02</span><h3>Explicit moods</h3><p>Named states control colour, blush, and thought bubbles without hiding application logic inside the component.</p></article>
-            <article className="feature-item"><span className="feature-number">03</span><h3>Readable by default</h3><p>Server and client render the same accessible text, and reduced motion keeps the expression still.</p></article>
-            <article className="feature-item"><span className="feature-number">04</span><h3>Thought bubbles</h3><p>Small reactions such as AWWWW, aw., ow., and yay are configurable site copy, not hard-coded navigation.</p></article>
+          <div className="preset-grid">
+            {presets.map((preset) => (
+              <button
+                className="preset-card"
+                type="button"
+                key={preset.name}
+                onClick={() => usePreset(preset)}
+              >
+                <span className="preset-face" aria-hidden="true">
+                  <LivingText
+                    text={preset.text}
+                    eyeMarkers
+                    mood={livingTextMoods.excited}
+                    theme={preset.theme}
+                    eyeShape={preset.shape}
+                    eyeStyle={preset.eyeStyle}
+                    gaze={preset.gaze}
+                    bubbleStyle={preset.bubble}
+                    blink="none"
+                    reducedMotion
+                    smile
+                    thoughts={{ excited: "" }}
+                  />
+                </span>
+                <strong>{preset.name}</strong>
+                <small>{preset.note}</small>
+              </button>
+            ))}
           </div>
         </section>
 
-        <section className="code-section section-block" aria-labelledby="code-title">
-          <div className="section-heading"><p className="eyebrow">START SMALL</p><h2 id="code-title">One component, a few deliberate props.</h2></div>
-          <div className="code-panel">
-            <div className="code-panel-heading"><span>join-us.tsx</span><button className="text-button" type="button" onClick={copyExample}>{copyStatus}</button></div>
-            <pre><code>{defaultCode}</code></pre>
-          </div>
-        </section>
-
-        <section className="install-section section-block" id="install" aria-labelledby="install-title">
-          <div><p className="eyebrow">READY WHEN YOU ARE</p><h2 id="install-title">Install the living layer.</h2><p>React is the only runtime peer. CSS is an explicit public export.</p></div>
-          <code className="install-command">npm install @uqrealitylabs/eyslie</code>
-        </section>
       </main>
 
-      <footer className="site-footer"><span>Eyslie / interactive library demonstration</span><span>UQ Reality Labs</span><a href="https://github.com/uqrealitylabs/eyslie" rel="noreferrer">Source on GitHub</a><a href="./OFL.txt">Font licence</a></footer>
+      <footer className="site-footer">
+        <span>Eyslie / expressive living text</span>
+        <a href="https://www.npmjs.com/package/@uqrealitylabs/eyslie" rel="noreferrer">
+          npm ↗
+        </a>
+        <a href="https://github.com/uqrealitylabs/eyslie" rel="noreferrer">
+          Source ↗
+        </a>
+        <a href="./OFL.txt">Font licence</a>
+      </footer>
     </div>
   );
+}
+
+type SelectControlProps<T extends string> = {
+  label: string;
+  value: T;
+  options: readonly T[];
+  onChange: (value: T) => void;
+};
+
+function SelectControl<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: SelectControlProps<T>) {
+  return (
+    <label className="control-field">
+      <span>{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as T)}
+      >
+        {options.map((option) => (
+          <option value={option} key={option}>
+            {formatLabel(option)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function formatLabel(value: string) {
+  return value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (letter) => letter.toUpperCase());
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

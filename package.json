@@ -47,6 +47,7 @@
     "demo:typecheck:built": "tsc --noEmit --project tools/config/tsconfig.demo.json",
     "test:demo": "node tools/scripts/demo/validate-demo.ts",
     "test:consumer": "node tools/scripts/consumer-smoke.ts",
+    "benchmark": "npm run build && node tools/scripts/benchmark.ts",
     "security:audit": "npm audit --audit-level=moderate",
     "security:osv": "node tools/scripts/security/osv-audit.ts",
     "prepare": "npm run build"

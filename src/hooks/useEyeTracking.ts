@@ -8,8 +8,12 @@ export function useEyeTracking(
   ref: RefObject<HTMLElement | null>,
   options: {
     disabled?: boolean | undefined;
+    strength?: number | undefined;
   } = {},
 ) {
+  const strength = Number.isFinite(options.strength)
+    ? Math.max(0, Math.min(1, options.strength as number))
+    : 1;
   React.useEffect(() => {
     const targets = () => {
       const root = ref.current;
@@ -52,7 +56,7 @@ export function useEyeTracking(
           point,
           eye.getBoundingClientRect(),
         );
-        setOffset(element, offset.x, offset.y);
+        setOffset(element, offset.x * strength, offset.y * strength);
       }
     };
     const onPointerMove = (event: PointerEvent) => {
@@ -78,5 +82,5 @@ export function useEyeTracking(
       }
       cancelFrame();
     };
-  }, [options.disabled, ref]);
+  }, [options.disabled, ref, strength]);
 }

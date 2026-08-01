@@ -1,18 +1,10 @@
 # eyslie
 
-Living text, eyes, winks, blush, bubbles, and small playful reactions for React.
+Expressive living text for React: eyes on any grapheme, gaze, winks, moods,
+blush, optional smiles, thought bubbles, and original visual atmospheres.
 
-## What It Is
-
-`@uqrealitylabs/eyslie` turns plain text into accessible living letters. It was extracted from the UQ Reality Labs `JOIN US` interaction and keeps the reusable parts: an O eye, a U eyelid, pupil tracking, wink timing, mood transitions, thought bubbles, and reduced-motion support.
-
-It is DOM/CSS/React only. No Three.js, no route logic, no website content graph.
-
-## When To Use It
-
-Use it when a wordmark, call-to-action, or short label should react to pointer proximity or an external state.
-
-Do not use it for long paragraphs, layout-heavy navigation, or anything that must look identical in every browser font.
+`@uqrealitylabs/eyslie` is DOM/CSS/React only. It has no canvas, animation
+framework, route logic, or bundled brand art.
 
 ## Install
 
@@ -20,95 +12,165 @@ Do not use it for long paragraphs, layout-heavy navigation, or anything that mus
 npm install @uqrealitylabs/eyslie
 ```
 
-The package is ESM-only. Repository scripts require Node.js 22.18 or newer.
+The package is ESM-only. Import its CSS explicitly:
 
 ```tsx
 import { LivingText } from "@uqrealitylabs/eyslie";
 import "@uqrealitylabs/eyslie/styles.css";
 ```
 
-React Server Component frameworks keep `LivingText` and the exported hooks on
-the client while pure text, state, timing, and geometry helpers stay callable
-from the package root on the server.
+## Put Eyes Anywhere
 
-## Basic Example
+Turn on `eyeMarkers`, then place a marker immediately before any Unicode
+grapheme:
+
+- `<` gives the next character a resting left gaze.
+- `^` gives the next character a resting upward gaze.
+- `>` gives the next character a resting right gaze.
+
+Markers are removed from both the rendered word and its default accessible
+label. Escape a literal marker or backslash with `\` (`\^`, `\<`, `\>`, `\\`).
+A trailing marker stays literal. When several markers precede one grapheme, the
+last direction wins.
 
 ```tsx
-import { LivingText, livingTextMoods } from "@uqrealitylabs/eyslie";
-
-export function JoinButton() {
-  return (
-    <LivingText
-      text="JOIN US"
-      mood={livingTextMoods.idleCurious}
-      eyeLetters={{ primary: "O", secondary: "U" }}
-      thoughts={{ nearStartled: "AWWWW", celebration: "yay" }}
-      ariaLabel="Join us"
-    />
-  );
-}
+<LivingText
+  text="W^O>W!"
+  eyeMarkers
+  mood="excited"
+  eyeShape="star"
+  eyeStyle="cosmic"
+  gaze="softFollow"
+  blink="wink"
+  expression="theatrical"
+  bubbleStyle="comic"
+  theme="tinyGalaxy"
+  smile
+/>
 ```
 
-> [!NOTE]
-> The component renders animated letters as `aria-hidden` and keeps a readable `aria-label` on the wrapper.
+This displays and announces `WOW!`; the O looks up and the second W rests to
+the right. Marker parsing is opt-in, so ordinary `<`, `^`, and `>` text remains
+unchanged by default.
 
-## Concepts
+The original two-anchor API remains available:
 
-### Living Letters
+```tsx
+<LivingText
+  text="JOIN US"
+  eyeLetters={{ primary: "O", secondary: "U" }}
+/>
+```
 
-`splitTextLetters()` follows Unicode grapheme boundaries so emoji, combining marks, flags, and joined glyphs stay intact in every supported runtime. Select eye anchors by grapheme value or index.
+Selectors may be a grapheme value or zero-based grapheme index.
 
-### O Eye / U Eyelid
+## Expression Controls
 
-The primary eye keeps the original glyph visible, then layers a white eye interior and brown pupil inside it. The secondary eye can render as an eyelid/wink target.
+The global controls stay orthogonal so an atmosphere never dictates an emotion
+or behaviour:
 
-### Moods
+| Prop | Values | Default |
+| --- | --- | --- |
+| `mood` | `idleCurious`, `nearStartled`, `excited`, `blush`, `celebration`, `sadShrivel`, `recovery` | `idleCurious` |
+| `eyeShape` | `round`, `almond`, `square`, `star`, `heart`, `visor` | `round` |
+| `eyeStyle` | `classic`, `ink`, `pixel`, `neon`, `cosmic`, `paper` | `classic` |
+| `gaze` | `follow`, `softFollow`, `centered`, `sideGlance`, `wander`, `scan` | `follow` |
+| `blink` | `natural`, `wink`, `none` | `natural` |
+| `expression` | `subtle`, `playful`, `theatrical` | `playful` |
+| `bubbleStyle` | `cloud`, `comic`, `whisper`, `pixel` | `cloud` |
+| `theme` | any exported `livingTextThemes` key | `classic` |
+| `smile` | boolean | `false` |
+| `blush` | `"auto"`, `true`, `false` | `"auto"` |
 
-The reusable moods are:
+`natural` blinks the second eye, matching the original O/U behaviour. `wink`
+cycles through all resolved eyes and works with a single eye. Inline markers
+support any number of eyes.
 
-- `idleCurious`
-- `nearStartled`
-- `excited`
-- `blush`
-- `celebration`
-- `sadShrivel`
-- `recovery`
+Blush cheeks are anchored to the visible characters near each text edge rather
+than percentages of the component box. The optional smile is CSS-centred under
+the word; Eyslie is intended for single-line words and short labels, not
+paragraphs or multiline layout.
 
-### Thought Bubbles
+### Thoughts
 
-Pass `thoughts` to override strings such as `AWWWW`, `aw.`, `ow.`, and `yay`.
+Pass a partial mood map to replace or suppress the neutral defaults:
 
-### Reduced Motion
+```tsx
+<LivingText
+  text="^H>I"
+  eyeMarkers
+  mood="celebration"
+  thoughts={{ celebration: "hooray!", sadShrivel: "" }}
+/>
+```
 
-Set `reducedMotion` to suppress wink timers and cursor-following transforms. The static text remains readable.
+### Atmospheres and Original Worlds
 
-## Accessibility Notes
+`livingTextThemes` contains original palettes such as `harbourDawn`,
+`desertTwilight`, `rainforestMist`, `cityAfterDark`, `polarGlow`,
+`storybookInk`, `retroArcade`, `tinyGalaxy`, and `solarpunkGarden`.
 
-Always pass `ariaLabel` when the visible text is decorative, stylised, or not the exact spoken phrase. The animated letter spans are hidden from assistive tech.
+They change colour atmosphere only. They do not assign behaviours or emotions
+to countries, cultures, or communities. No built-in theme copies a franchise,
+character, logo, or signature protected design. Use the colour props or CSS
+custom properties for a community-reviewed local palette or artwork you have
+permission to use.
 
-> [!WARNING]
-> Do not use this package as the only label for a critical action unless the surrounding button or link also has a stable accessible name.
+Explicit colour props override a selected theme, and values in `style` override
+both:
 
-## Testing Notes
+```tsx
+<LivingText
+  text="^H>I"
+  eyeMarkers
+  theme="harbourDawn"
+  excitedColor="#ff4f81"
+  style={{ "--eyslie-blush-color": "#ef8baa" } as React.CSSProperties}
+/>
+```
 
-Deterministic helpers are exported from the main entry:
+## Accessibility and Motion
 
+The animated letters are hidden from assistive technology. `LivingText` puts a
+stable accessible name on its wrapper, automatically stripping inline control
+markers. Pass `ariaLabel` when the spoken phrase should differ from the visible
+text.
+
+Do not use stylised living text as the only label for a critical action unless
+the surrounding button or link also has a stable accessible name.
+
+Set `reducedMotion` to disable JavaScript tracking and wink timers. CSS also
+honours the operating system's reduced-motion preference while preserving fixed
+marker gaze. Server output and the first client render are deterministic.
+
+React Server Component frameworks keep `LivingText` and hooks behind their
+client boundaries. Pure grapheme, marker, state, timing, and geometry helpers
+remain callable from the package root on the server.
+
+## Deterministic Helpers
+
+The root export includes:
+
+- `parseEyeMarkers(text)`
+- `splitTextLetters(text)`
+- `getCheekAnchors(letters)`
 - `createWinkSchedule(seed)`
 - `constrainPupilOffset(x, y, bounds)`
 - `nextLivingTextMood(mood, event, elapsedMs)`
 - `isPointerNear(rect, point, radius)`
 
-## What This Package Does Not Do
+## Interactive Demo
 
-- It does not navigate routes.
-- It does not know about UQ content, Rubrics pages, or social links.
-- It does not ship brand assets.
-- It does not include animation libraries.
+Run `npm run demo:dev`. A production build is written to `demo-dist/` by
+`npm run demo:build`, and `npm run demo:preview` serves it locally.
 
-> [!TIP]
-> Keep site-specific wrappers in the app. Let `eyslie` handle letter behaviour only.
+GitHub Pages publishes the demo at <https://uqrealitylabs.com/eyslie/> with the
+matching `/eyslie/` asset base. The display font is the existing OFL-licensed
+Pixelify Sans asset; its notice remains beside the source and built asset.
 
-## Development Commands
+## Development
+
+Repository scripts require Node.js 22.18 or newer.
 
 ```sh
 npm install
@@ -118,21 +180,8 @@ npm run format:check
 npm run test
 npm run build
 npm run demo:build
+npm run benchmark
 ```
-
-## Interactive Demo
-
-Run the demo locally with `npm run demo:dev`. A production build is written to
-`demo-dist/` by `npm run demo:build`, and `npm run demo:preview` serves that
-output locally.
-
-The Pages workflow builds the demo at
-`https://uqrealitylabs.com/eyslie/` with the matching `/eyslie/` asset base.
-
-No Chalk font asset is present in the source repositories. The demo therefore
-uses the existing OFL-licensed Pixelify Sans asset in `examples/demo/src/assets`
-with a Chalk/Chalkboard fallback stack. The original font notices remain beside
-the asset.
 
 ## License
 
