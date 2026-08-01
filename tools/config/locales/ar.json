@@ -1,0 +1,31 @@
+{
+  "eyslie": {
+    "label": "العربية",
+    "thoughts": {
+      "subtle": {
+        "nearStartled": "أوه",
+        "excited": "رائع",
+        "blush": "مرحبًا",
+        "celebration": "نجحنا",
+        "sadShrivel": "آه",
+        "recovery": "أنا بخير"
+      },
+      "playful": {
+        "nearStartled": "أوه!",
+        "excited": "رائع!",
+        "blush": "مرحبًا…",
+        "celebration": "نجحنا!",
+        "sadShrivel": "آه…",
+        "recovery": "أنا بخير الآن"
+      },
+      "theatrical": {
+        "nearStartled": "أوووه!",
+        "excited": "مذهل!",
+        "blush": "أوه، مرحبًا!",
+        "celebration": "لقد نجحنا!",
+        "sadShrivel": "آآآه!",
+        "recovery": "عدت من جديد!"
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const htmlPath = "demo-dist/index.html";
@@ -44,8 +44,37 @@ if (existsSync(sourcePath)) {
     "../../../dist/index.js",
     "eyeMarkers",
     "livingTextThemes",
+    "resolveThoughtLocale",
+    "__EYSLIE_LOCALES__",
+    "Thought locale",
+    "getExpressionLevel",
+    "mouthStyles",
+    'type="range"',
+    'htmlFor="expression-intensity"',
+    'aria-atomic="true"',
+    "ChoiceControl",
+    "live-ellipsis",
   ]) {
     if (!source.includes(text)) issues.push(`demo source is missing ${text}`);
+  }
+}
+
+if (existsSync("demo-dist/assets")) {
+  const scripts = readdirSync("demo-dist/assets").filter((file) =>
+    file.endsWith(".js"),
+  );
+  const source = scripts
+    .map((file) => readFileSync(join("demo-dist/assets", file), "utf8"))
+    .join("\n");
+  for (const text of ["العربية", "日本語", "No localized thought"]) {
+    if (!source.includes(text)) issues.push(`built demo is missing ${text}`);
+  }
+  const sentinel = "满血复活！";
+  if (source.split(sentinel).length !== 2) {
+    issues.push("built demo must include the locale catalog exactly once");
+  }
+  for (const text of ["smol-toml", "node:fs/promises"]) {
+    if (source.includes(text)) issues.push(`browser bundle includes ${text}`);
   }
 }
 
@@ -55,6 +84,9 @@ if (existsSync(stylesPath)) {
     "-webkit-text-stroke",
     ".preset-grid",
     "overflow: auto",
+    "demo-running-dot",
+    "demo-running-ellipsis",
+    ".choice-options",
   ]) {
     if (!styles.includes(text)) issues.push(`demo styles are missing ${text}`);
   }

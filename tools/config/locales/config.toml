@@ -1,0 +1,9 @@
+version = 1
+default_locale = "und"
+
+[site]
+name = "Eyslie"
+url = "https://uqrealitylabs.com/eyslie/"
+
+[output]
+public_dir = "generated"

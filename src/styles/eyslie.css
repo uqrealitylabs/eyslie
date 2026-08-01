@@ -225,6 +225,26 @@
   border-radius: 0.08em;
 }
 
+.eyslie[data-eye-shape="diamond"] {
+  --eyslie-eye-height: 0.42em;
+  --eyslie-eye-width: 0.42em;
+}
+
+.eyslie[data-eye-shape="diamond"] .eyslie__inner-eye {
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.eyslie[data-eye-shape="droplet"] {
+  --eyslie-eye-height: 0.44em;
+  --eyslie-eye-width: 0.44em;
+  --eyslie-eye-rotation: -32deg;
+}
+
+.eyslie[data-eye-shape="droplet"] .eyslie__inner-eye {
+  border-radius: 55% 50% 55% 18%;
+}
+
 .eyslie[data-eye-style="ink"] .eyslie__inner-eye {
   outline: 0.035em solid currentColor;
   box-shadow: inset 0.035em -0.025em 0 rgb(0 0 0 / 18%);
@@ -261,6 +281,61 @@
 .eyslie[data-eye-style="paper"] .eyslie__inner-eye {
   border: 0.025em dashed currentColor;
   box-shadow: 0.025em 0.035em 0 rgb(0 0 0 / 16%);
+}
+
+.eyslie[data-eye-style="outline"] .eyslie__inner-eye {
+  outline: 0.045em solid var(--eyslie-eye-color);
+  background: transparent;
+  box-shadow: inset 0 0 0 0.025em currentColor;
+}
+
+.eyslie[data-eye-style="outline"] .eyslie__pupil {
+  outline: 0.02em solid var(--eyslie-eye-color);
+}
+
+.eyslie[data-eye-style="gloss"] .eyslie__inner-eye {
+  background: linear-gradient(
+    145deg,
+    #fff 0 18%,
+    var(--eyslie-eye-color) 20% 68%,
+    rgb(0 0 0 / 16%) 100%
+  );
+  box-shadow: inset -0.035em -0.035em 0 rgb(0 0 0 / 14%);
+}
+
+.eyslie[data-eye-style="gloss"] .eyslie__pupil {
+  box-shadow:
+    inset 0.035em 0.035em 0 rgb(255 255 255 / 58%),
+    0 0 0.04em rgb(0 0 0 / 24%);
+}
+
+.eyslie__letter[data-eye-emoji="true"] {
+  --eyslie-rest-x: 0em;
+  --eyslie-rest-y: 0em;
+}
+
+.eyslie__letter[data-eye-emoji="true"] .eyslie__glyph {
+  visibility: hidden;
+}
+
+.eyslie__letter[data-eye-emoji="true"] .eyslie__inner-eye {
+  width: 0.46em;
+  height: 0.35em;
+  border: 0;
+  border-radius: 999px;
+  outline: 0;
+  clip-path: none;
+  background: var(--eyslie-eye-color);
+  box-shadow: none;
+  transform: translate(-50%, var(--eyslie-eye-translate-y))
+    scale(var(--eyslie-eye-scale), var(--eyslie-eye-scale-y));
+}
+
+.eyslie__letter[data-eye-emoji="true"] .eyslie__pupil {
+  border-radius: 999px;
+  outline: 0;
+  background: var(--eyslie-pupil-color);
+  box-shadow: none;
 }
 
 .eyslie__cheek {
@@ -305,18 +380,23 @@
 }
 
 .eyslie__thought {
+  --eyslie-bubble-rotate: 0deg;
   position: absolute;
   z-index: 5;
   left: 50%;
-  top: -1.25em;
+  bottom: calc(100% + 0.35em);
   padding: 0.36em 0.62em;
   border: 0.07em solid currentColor;
-  border-radius: 999px;
+  border-radius: 52% 48% 46% 54% / 58% 54% 46% 42%;
   color: var(--eyslie-bubble-text-color);
   background: var(--eyslie-bubble-color);
   box-shadow: 0.1em 0.1em 0 rgb(0 0 0 / 14%);
-  transform: translateX(-50%);
-  white-space: nowrap;
+  transform: translateX(-50%) rotate(var(--eyslie-bubble-rotate));
+  inline-size: max-content;
+  max-inline-size: min(24rem, 85vw);
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: start;
   font-size: max(0.27em, 0.72rem);
   font-weight: 700;
   line-height: 1;
@@ -325,26 +405,49 @@
 .eyslie__thought::after {
   content: "";
   position: absolute;
-  left: 46%;
-  bottom: -0.32em;
-  width: 0.42em;
-  height: 0.36em;
-  border-right: 0.07em solid currentColor;
-  border-bottom: 0.07em solid currentColor;
+  left: 42%;
+  bottom: -0.34em;
+  width: 0.2em;
+  height: 0.2em;
+  border: 0.055em solid currentColor;
+  border-radius: 50%;
   background: var(--eyslie-bubble-color);
-  transform: skew(12deg) rotate(35deg);
+  box-shadow: -0.24em 0.2em 0 -0.04em var(--eyslie-bubble-color);
 }
 
 .eyslie__thought[data-bubble-style="comic"] {
-  border-radius: 0.28em;
-  transform: translateX(-50%) rotate(-2deg);
+  --eyslie-bubble-rotate: -2deg;
+  border-radius: 0.18em 0.38em 0.24em 0.42em;
+  box-shadow: 0.14em 0.14em 0 currentColor;
+}
+
+.eyslie__thought[data-bubble-style="comic"]::after {
+  left: 52%;
+  bottom: -0.34em;
+  width: 0.4em;
+  height: 0.34em;
+  border: 0;
+  border-right: 0.07em solid currentColor;
+  border-bottom: 0.07em solid currentColor;
+  border-radius: 0;
+  box-shadow: none;
+  transform: skew(12deg) rotate(35deg);
 }
 
 .eyslie__thought[data-bubble-style="whisper"] {
+  --eyslie-bubble-rotate: 1deg;
   border-style: dashed;
   box-shadow: none;
   font-weight: 500;
+  font-style: italic;
   opacity: 0.88;
+}
+
+.eyslie__thought[data-bubble-style="whisper"]::after {
+  left: 48%;
+  border-style: dotted;
+  box-shadow: -0.23em 0.18em 0 -0.045em var(--eyslie-bubble-color);
+  opacity: 0.75;
 }
 
 .eyslie__thought[data-bubble-style="pixel"] {
@@ -352,31 +455,83 @@
   box-shadow: 0.18em 0.18em 0 currentColor;
 }
 
-.eyslie[data-smile="true"]::after {
+.eyslie__thought[data-bubble-style="pixel"]::after {
+  left: 50%;
+  bottom: -0.28em;
+  width: 0.24em;
+  height: 0.24em;
+  border: 0;
+  border-right: 0.07em solid currentColor;
+  border-bottom: 0.07em solid currentColor;
+  border-radius: 0;
+  box-shadow: 0.1em 0.1em 0 var(--eyslie-bubble-color);
+  transform: rotate(45deg);
+}
+
+.eyslie[data-mouth]::after {
   content: "";
   position: absolute;
   z-index: 4;
   left: 50%;
   bottom: -0.32em;
+  border: 0;
+  background: transparent;
+  transform: translateX(-50%);
+}
+
+.eyslie[data-mouth="auto"]::after,
+.eyslie[data-mouth="smile"]::after {
   width: 0.7em;
   height: 0.28em;
   border-bottom: 0.07em solid currentColor;
   border-radius: 0 0 50% 50%;
-  transform: translateX(-50%);
 }
 
-.eyslie[data-smile="true"][data-mood="nearStartled"]::after {
-  width: 0.2em;
-  height: 0.2em;
+.eyslie[data-mouth="grin"]::after,
+.eyslie[data-mouth="auto"][data-mood="excited"]::after,
+.eyslie[data-mouth="auto"][data-mood="celebration"]::after {
+  width: 0.82em;
+  height: 0.34em;
+  border: 0.055em solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 50% 50%;
+  background: var(--eyslie-eye-color);
+}
+
+.eyslie[data-mouth="open"]::after,
+.eyslie[data-mouth="auto"][data-mood="nearStartled"]::after {
+  width: 0.24em;
+  height: 0.28em;
   border: 0.055em solid currentColor;
   border-radius: 50%;
+  background: var(--eyslie-pupil-color);
 }
 
-.eyslie[data-smile="true"][data-mood="sadShrivel"]::after {
+.eyslie[data-mouth="flat"]::after,
+.eyslie[data-mouth="auto"][data-mood="recovery"]::after {
+  width: 0.52em;
+  height: 0;
+  border-bottom: 0.065em solid currentColor;
+  border-radius: 0;
+}
+
+.eyslie[data-mouth="frown"]::after,
+.eyslie[data-mouth="auto"][data-mood="sadShrivel"]::after {
   bottom: -0.45em;
+  width: 0.66em;
+  height: 0.28em;
   border-top: 0.07em solid currentColor;
   border-bottom: 0;
   border-radius: 50% 50% 0 0;
+}
+
+.eyslie[data-mouth="pout"]::after,
+.eyslie[data-mouth="auto"][data-mood="blush"][data-blush="true"]::after {
+  width: 0.34em;
+  height: 0.16em;
+  border-top: 0.065em solid currentColor;
+  border-bottom: 0.065em solid currentColor;
+  border-radius: 50%;
 }
 
 .eyslie[data-reduced-motion="true"] .eyslie__pupil {
@@ -431,11 +586,15 @@
     animation: eyslie-thought 260ms cubic-bezier(0.2, 1.5, 0.4, 1);
   }
 
-  .eyslie[data-reduced-motion="false"][data-gaze="wander"] .eyslie__pupil {
+  .eyslie[data-reduced-motion="false"][data-gaze="wander"]
+    .eyslie__letter:not([data-eye-emoji="true"])
+    .eyslie__pupil {
     animation: eyslie-wander 2600ms ease-in-out infinite alternate;
   }
 
-  .eyslie[data-reduced-motion="false"][data-gaze="scan"] .eyslie__pupil {
+  .eyslie[data-reduced-motion="false"][data-gaze="scan"]
+    .eyslie__letter:not([data-eye-emoji="true"])
+    .eyslie__pupil {
     animation: eyslie-scan 1600ms ease-in-out infinite alternate;
   }
 
@@ -521,11 +680,13 @@
 
 @keyframes eyslie-thought {
   from {
-    transform: translateX(-50%) translateY(0.2em) scale(0.75);
+    transform: translateX(-50%) translateY(0.2em) scale(0.75)
+      rotate(var(--eyslie-bubble-rotate));
     opacity: 0;
   }
   to {
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translateX(-50%) translateY(0) scale(1)
+      rotate(var(--eyslie-bubble-rotate));
     opacity: 1;
   }
 }
@@ -563,5 +724,10 @@
 
   .eyslie__pupil {
     background: CanvasText;
+  }
+
+  .eyslie[data-mouth]::after {
+    border-color: CanvasText;
+    background: Canvas;
   }
 }

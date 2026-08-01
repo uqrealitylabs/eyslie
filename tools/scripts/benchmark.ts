@@ -16,13 +16,22 @@ const markedView = createElement(LivingText, {
   mood: "excited",
   eyeShape: "star",
   theme: "tinyGalaxy",
-  smile: true,
+  mouth: "auto",
+});
+const emojiView = createElement(LivingText, {
+  text: "^👁️",
+  eyeMarkers: true,
+  eyeShape: "diamond",
+  eyeStyle: "gloss",
+  gaze: "wander",
+  mouth: "auto",
 });
 
 const results = {
   parse: measure(20_000, () => parseEyeMarkers(markedText)),
   ssrDefault: measure(1_000, () => renderToString(defaultView)),
   ssrMarked: measure(1_000, () => renderToString(markedView)),
+  ssrEmoji: measure(1_000, () => renderToString(emojiView)),
   output: {
     defaultHtmlBytes: Buffer.byteLength(renderToString(defaultView)),
     distBytes: directorySize("dist") + statSync("src/styles/eyslie.css").size,

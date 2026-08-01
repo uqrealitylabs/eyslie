@@ -1,10 +1,17 @@
 {
   "name": "@uqrealitylabs/eyslie",
   "version": "0.5.0",
-  "description": "Expressive living text eyes, moods, winks, blush, bubbles, and reactions for React.",
+  "description": "Expressive living text eyes, moods, reactive mouths, blush, bubbles, and localized reactions for React.",
   "type": "module",
   "license": "GPL-3.0-only",
   "packageManager": "npm@11.12.1",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=24.18.0",
+      "onFail": "error"
+    }
+  },
   "sideEffects": [
     "src/styles/eyslie.css"
   ],
@@ -72,6 +79,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",
+    "@keys-i/seer": "1.0.0",
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",

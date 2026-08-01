@@ -1,0 +1,31 @@
+{
+  "eyslie": {
+    "label": "No localized thought",
+    "thoughts": {
+      "subtle": {
+        "nearStartled": "",
+        "excited": "",
+        "blush": "",
+        "celebration": "",
+        "sadShrivel": "",
+        "recovery": ""
+      },
+      "playful": {
+        "nearStartled": "",
+        "excited": "",
+        "blush": "",
+        "celebration": "",
+        "sadShrivel": "",
+        "recovery": ""
+      },
+      "theatrical": {
+        "nearStartled": "",
+        "excited": "",
+        "blush": "",
+        "celebration": "",
+        "sadShrivel": "",
+        "recovery": ""
+      }
+    }
+  }
+}

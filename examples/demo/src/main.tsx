@@ -6,32 +6,34 @@ import {
   eyeShapes,
   eyeStyles,
   gazeBehaviors,
+  getExpressionLevel,
   LivingText,
   type BlinkBehavior,
-  type ExpressionLevel,
   type EyeShape,
   type EyeStyle,
   type GazeBehavior,
   type LivingTextMood,
   type LivingTextTheme,
+  type MouthStyle,
   livingTextMoods,
   livingTextThemes,
+  mouthStyles,
   type ThoughtBubbleStyle,
   thoughtBubbleStyles,
 } from "../../../dist/index.js";
 import "@uqrealitylabs/eyslie/styles.css";
+import {
+  type DemoLocaleCatalog,
+  resolveThoughtLocale,
+} from "./locales.js";
 import "./styles.css";
+
+declare const __EYSLIE_LOCALES__: DemoLocaleCatalog;
 
 const moodOptions: LivingTextMood[] = Object.values(livingTextMoods);
 const themeOptions = Object.keys(livingTextThemes) as LivingTextTheme[];
-const demoThoughts: Partial<Record<LivingTextMood, string>> = {
-  nearStartled: "whoa!",
-  excited: "yes!",
-  blush: "oh—hi",
-  celebration: "we did it!",
-  sadShrivel: "ouch…",
-  recovery: "okay.",
-};
+const localeCatalog = __EYSLIE_LOCALES__;
+const localeOptions = Object.keys(localeCatalog);
 
 type Preset = {
   name: string;
@@ -115,12 +117,20 @@ function App() {
   const [eyeStyle, setEyeStyle] = useState<EyeStyle>("cosmic");
   const [gaze, setGaze] = useState<GazeBehavior>("follow");
   const [blink, setBlink] = useState<BlinkBehavior>("wink");
-  const [expression, setExpression] =
-    useState<ExpressionLevel>("theatrical");
+  const [intensity, setIntensity] = useState(2);
   const [bubble, setBubble] = useState<ThoughtBubbleStyle>("comic");
-  const [smile, setSmile] = useState(true);
+  const [mouth, setMouth] = useState<MouthStyle>("auto");
   const [blush, setBlush] = useState<boolean | "auto">("auto");
+  const [locale, setLocale] = useState("en");
   const [reducedMotion, setReducedMotion] = useState(false);
+  const thoughtLocale = resolveThoughtLocale(localeCatalog, locale);
+  const localeContent = localeCatalog[thoughtLocale];
+  const thoughtLanguage = thoughtLocale === "und" ? undefined : thoughtLocale;
+  const expression = getExpressionLevel(intensity);
+  const localizedThoughts = localeContent.thoughts[expression];
+  const localizedThought = localizedThoughts[mood];
+  const thoughtAnnouncement =
+    localizedThought || (thoughtLocale === "und" ? localeContent.label : "");
 
   function reset() {
     setText("W^O>W!");
@@ -130,10 +140,11 @@ function App() {
     setEyeStyle("cosmic");
     setGaze("follow");
     setBlink("wink");
-    setExpression("theatrical");
+    setIntensity(2);
     setBubble("comic");
-    setSmile(true);
+    setMouth("auto");
     setBlush("auto");
+    setLocale("en");
     setReducedMotion(false);
   }
 
@@ -194,8 +205,9 @@ function App() {
               gaze="wander"
               blink="wink"
               expression="theatrical"
-              smile
-              thoughts={{ celebration: "hello!" }}
+              mouth="auto"
+              thoughts={localeContent.thoughts.theatrical}
+              thoughtLang={thoughtLanguage}
             />
             <span className="burst burst-two" aria-hidden="true">
               ✺
@@ -231,14 +243,16 @@ function App() {
             <p className="kicker">EXPRESSION LAB</p>
             <h2 id="lab-title">Make it feel alive.</h2>
             <p>
-              Move your pointer around the stage, then mix shape, motion, mood,
-              art and atmosphere. Every control below is a real public prop.
+              Choose a mood or move your pointer around the stage, then mix
+              shape, motion, language and atmosphere. Mood and intensity select
+              the words; locale never selects a personality.
             </p>
           </div>
 
           <div className="lab-layout">
             <div
               className="living-stage"
+              data-reduced-motion={reducedMotion ? "true" : "false"}
               onPointerEnter={() =>
                 setMood((current) =>
                   current === livingTextMoods.idleCurious
@@ -256,7 +270,17 @@ function App() {
             >
               <div className="stage-topline">
                 <span>LIVE SPECIMEN</span>
-                <span className="live-dot">● running</span>
+                <span className="live-status">
+                  <span className="live-dot" aria-hidden="true">
+                    ●
+                  </span>
+                  <span>running</span>
+                  <span className="live-ellipsis" aria-hidden="true">
+                    <span>.</span>
+                    <span>.</span>
+                    <span>.</span>
+                  </span>
+                </span>
               </div>
               <div className="stage-scroll">
                 <div className="living-word" data-testid="living-text-demo">
@@ -272,15 +296,35 @@ function App() {
                     blink={blink}
                     expression={expression}
                     bubbleStyle={bubble}
-                    thoughts={demoThoughts}
-                    smile={smile}
+                    thoughts={localizedThoughts}
+                    thoughtLang={thoughtLanguage}
+                    mouth={mouth}
                     blush={blush}
                     reducedMotion={reducedMotion}
                   />
                 </div>
               </div>
-              <p className="stage-status" aria-live="polite">
-                {formatLabel(mood)} · {formatLabel(theme)} · {formatLabel(shape)}
+              <p className="stage-status">
+                <span>
+                  {formatLabel(mood)} ·{" "}
+                  <span lang={thoughtLanguage} dir="auto">
+                    {localeContent.label}
+                  </span>{" "}
+                  · {formatLabel(expression)} · {formatLabel(theme)}
+                </span>
+                <span
+                  className="sr-only"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {formatLabel(mood)}, {formatLabel(expression)}. {" "}
+                  <span
+                    lang={localizedThought ? thoughtLanguage : undefined}
+                    dir="auto"
+                  >
+                    {thoughtAnnouncement}
+                  </span>
+                </span>
               </p>
             </div>
 
@@ -303,11 +347,16 @@ function App() {
                   spellCheck="false"
                   onChange={(event) => setText(event.target.value)}
                 />
-                <small>Try C^O&gt;O&lt;L or put an eye on emoji.</small>
+                <small>
+                  Try C^O&gt;O&lt;L or 👁️ — an eye emoji stays centred.
+                </small>
               </label>
 
               <fieldset className="mood-field control-wide">
-                <legend>Mood</legend>
+                <legend>Emotion spectrum</legend>
+                <p className="field-hint">
+                  Pick the feeling, then tune how strongly it speaks.
+                </p>
                 <div className="mood-options">
                   {moodOptions.map((option) => (
                     <label key={option}>
@@ -322,20 +371,77 @@ function App() {
                     </label>
                   ))}
                 </div>
+                <div className="spectrum-control">
+                  <span className="spectrum-heading">
+                    <label htmlFor="expression-intensity">
+                      Expression intensity
+                    </label>
+                    <output htmlFor="expression-intensity">
+                      {formatLabel(expression)}
+                    </output>
+                  </span>
+                  <input
+                    id="expression-intensity"
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="1"
+                    value={intensity}
+                    aria-valuetext={formatLabel(expression)}
+                    onChange={(event) =>
+                      setIntensity(Number(event.currentTarget.value))
+                    }
+                  />
+                  <span className="spectrum-stops" aria-hidden="true">
+                    {expressionLevels.map((level) => (
+                      <span key={level}>{formatLabel(level)}</span>
+                    ))}
+                  </span>
+                </div>
               </fieldset>
 
+              <ChoiceControl
+                label="Eye shape"
+                name="eye-shape"
+                value={shape}
+                options={eyeShapes}
+                preview="eye"
+                onChange={setShape}
+              />
+
               <div className="control-grid control-wide">
+                <label className="control-field">
+                  <span>Thought locale</span>
+                  <input
+                    value={locale}
+                    maxLength={64}
+                    list="thought-locales"
+                    spellCheck="false"
+                    onChange={(event) => setLocale(event.target.value)}
+                  />
+                  <datalist id="thought-locales">
+                    {localeOptions.map((option) => (
+                      <option
+                        value={option}
+                        label={localeCatalog[option]?.label}
+                        lang={option === "und" ? undefined : option}
+                        dir="auto"
+                        key={option}
+                      />
+                    ))}
+                  </datalist>
+                  <small>
+                    Try en-AU, ar-EG, zh-CN or mi-NZ →{" "}
+                    <span lang={thoughtLanguage} dir="auto">
+                      {localeContent.label}
+                    </span>
+                  </small>
+                </label>
                 <SelectControl
                   label="Atmosphere"
                   value={theme}
                   options={themeOptions}
                   onChange={setTheme}
-                />
-                <SelectControl
-                  label="Eye shape"
-                  value={shape}
-                  options={eyeShapes}
-                  onChange={setShape}
                 />
                 <SelectControl
                   label="Eye art"
@@ -355,37 +461,44 @@ function App() {
                   options={blinkBehaviors}
                   onChange={setBlink}
                 />
-                <SelectControl
-                  label="Expression"
-                  value={expression}
-                  options={expressionLevels}
-                  onChange={setExpression}
-                />
-                <SelectControl
-                  label="Thought bubble"
-                  value={bubble}
-                  options={thoughtBubbleStyles}
-                  onChange={setBubble}
-                />
-                <SelectControl
-                  label="Blush"
-                  value={blush === true ? "on" : blush === false ? "off" : "auto"}
-                  options={["auto", "on", "off"] as const}
-                  onChange={(value) =>
-                    setBlush(value === "auto" ? "auto" : value === "on")
-                  }
-                />
               </div>
 
+              <ChoiceControl
+                label="Thought bubble"
+                name="thought-bubble"
+                value={bubble}
+                options={thoughtBubbleStyles}
+                preview="bubble"
+                onChange={setBubble}
+              />
+
+              <ChoiceControl
+                label="Mouth expression"
+                name="mouth"
+                value={mouth}
+                options={mouthStyles}
+                onChange={setMouth}
+              />
+
+              <ChoiceControl
+                label="Blush"
+                name="blush"
+                value={blush === true ? "on" : blush === false ? "off" : "auto"}
+                options={["auto", "on", "off"] as const}
+                onChange={(value) =>
+                  setBlush(value === "auto" ? "auto" : value === "on")
+                }
+              />
+
+              <p className="locale-note control-wide">
+                Seer validates every phrase at build time. Any other BCP-47
+                locale falls back through a compatible script and language,
+                then suppresses the bubble—never inferring a national
+                personality. Treat starter translations as examples until
+                native speakers review them for your community.
+              </p>
+
               <div className="toggle-row control-wide">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={smile}
-                    onChange={(event) => setSmile(event.target.checked)}
-                  />
-                  <span>Smile</span>
-                </label>
                 <label>
                   <input
                     type="checkbox"
@@ -429,7 +542,7 @@ function App() {
                     bubbleStyle={preset.bubble}
                     blink="none"
                     reducedMotion
-                    smile
+                    mouth="auto"
                     thoughts={{ excited: "" }}
                   />
                 </span>
@@ -483,6 +596,50 @@ function SelectControl<T extends string>({
         ))}
       </select>
     </label>
+  );
+}
+
+type ChoiceControlProps<T extends string> = SelectControlProps<T> & {
+  name: string;
+  preview?: "eye" | "bubble" | undefined;
+};
+
+function ChoiceControl<T extends string>({
+  label,
+  name,
+  value,
+  options,
+  preview,
+  onChange,
+}: ChoiceControlProps<T>) {
+  return (
+    <fieldset className="choice-field control-wide">
+      <legend>{label}</legend>
+      <div className="choice-options">
+        {options.map((option) => (
+          <label key={option}>
+            <input
+              type="radio"
+              name={name}
+              value={option}
+              checked={value === option}
+              onChange={() => onChange(option)}
+            />
+            <span className="choice-card">
+              {preview ? (
+                <span
+                  className="choice-preview"
+                  data-preview={preview}
+                  data-option={option}
+                  aria-hidden="true"
+                />
+              ) : null}
+              <span>{formatLabel(option)}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 

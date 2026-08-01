@@ -14,6 +14,7 @@ import {
   defaultThoughts,
   getCheekAnchors,
   getThoughtForMood,
+  isEyeEmoji,
   type LivingTextMood,
   livingTextMoods,
   parseEyeMarkers,
@@ -27,6 +28,7 @@ import {
   type GazeBehavior,
   type LivingTextTheme,
   livingTextThemes,
+  type MouthStyle,
 } from "./state/livingTextOptions.js";
 
 export type EyeLetterSelector = string | number;
@@ -50,9 +52,12 @@ export type LivingTextProps = {
   expression?: ExpressionLevel | undefined;
   bubbleStyle?: ThoughtBubbleStyle | undefined;
   theme?: LivingTextTheme | undefined;
+  mouth?: MouthStyle | undefined;
+  /** @deprecated Use `mouth="auto"`. */
   smile?: boolean | undefined;
   blush?: boolean | "auto" | undefined;
   thoughts?: LivingTextThoughts | undefined;
+  thoughtLang?: string | undefined;
   idleColor?: string | undefined;
   excitedColor?: string | undefined;
   sadColor?: string | undefined;
@@ -67,6 +72,7 @@ export type LivingTextProps = {
 type ResolvedEye = {
   index: number;
   restGaze?: "left" | "up" | "right" | undefined;
+  fixedCenter?: boolean | undefined;
 };
 
 export function LivingText({
@@ -82,9 +88,11 @@ export function LivingText({
   expression = "playful",
   bubbleStyle = "cloud",
   theme = "classic",
+  mouth,
   smile = false,
   blush = "auto",
   thoughts = defaultThoughts,
+  thoughtLang,
   idleColor,
   excitedColor,
   sadColor,
@@ -102,20 +110,26 @@ export function LivingText({
     if (eyeMarkers) {
       const marked = parseEyeMarkers(text);
       return {
-        eyes: marked.eyes.map(({ index, gaze }) => ({
-          index,
-          restGaze: gaze,
-        })),
+        eyes: resolveEmojiEyes(
+          marked.letters,
+          marked.eyes.map(({ index, gaze }) => ({
+            index,
+            restGaze: gaze,
+          })),
+        ),
         labelText: marked.text,
         letters: marked.letters,
       };
     }
     const letters = splitTextLetters(text);
     return {
-      eyes: resolveLegacyEyes(letters, {
-        primary: primaryEye,
-        secondary: secondaryEye,
-      }),
+      eyes: resolveEmojiEyes(
+        letters,
+        resolveLegacyEyes(letters, {
+          primary: primaryEye,
+          secondary: secondaryEye,
+        }),
+      ),
       labelText: text,
       letters,
     };
@@ -127,8 +141,9 @@ export function LivingText({
       ? labelText
       : undefined;
   const followsPointer = gaze === "follow" || gaze === "softFollow";
+  const hasTrackableEye = eyes.some((eye) => !eye.fixedCenter);
   useEyeTracking(rootRef, {
-    disabled: reducedMotion || !eyes.length || !followsPointer,
+    disabled: reducedMotion || !hasTrackableEye || !followsPointer,
     strength: gaze === "softFollow" ? 0.55 : 1,
   });
   const winkEnabled =
@@ -148,10 +163,11 @@ export function LivingText({
     pupilColor,
     style,
   });
-  const cheeks = resolveCheeks(
-    letters,
-    blush === true || (blush === "auto" && mood === livingTextMoods.blush),
-  );
+  const hasBlush =
+    blush === true || (blush === "auto" && mood === livingTextMoods.blush);
+  const cheeks = resolveCheeks(letters, hasBlush);
+  const hasVisibleBlush = cheeks.size > 0;
+  const resolvedMouth = mouth ?? (smile ? "auto" : "none");
   const eyesByIndex = new Map(
     eyes.map((eye, eyeIndex) => [eye.index, { ...eye, eyeIndex }]),
   );
@@ -170,6 +186,8 @@ export function LivingText({
       data-expression={expression === "playful" ? undefined : expression}
       data-theme={safeTheme === "classic" ? undefined : safeTheme}
       data-smile={smile ? "true" : undefined}
+      data-mouth={resolvedMouth === "none" ? undefined : resolvedMouth}
+      data-blush={hasVisibleBlush ? "true" : undefined}
       data-reduced-motion={reducedMotion ? "true" : "false"}
       style={cssVars}
     >
@@ -186,12 +204,14 @@ export function LivingText({
                 eyeRole={eye.eyeIndex === 0 ? "primary" : "secondary"}
                 eyeIndex={eye.eyeIndex}
                 restGaze={
-                  eye.restGaze ??
-                  (gaze === "sideGlance"
-                    ? eye.eyeIndex % 2
-                      ? "right"
-                      : "left"
-                    : undefined)
+                  eye.fixedCenter
+                    ? undefined
+                    : (eye.restGaze ??
+                      (gaze === "sideGlance"
+                        ? eye.eyeIndex % 2
+                          ? "right"
+                          : "left"
+                        : undefined))
                 }
                 blushSides={blushSides}
                 winking={wink.isWinking && eye.eyeIndex === winkTarget}
@@ -213,7 +233,7 @@ export function LivingText({
           );
         })}
       </span>
-      <ThoughtBubble variant={bubbleStyle}>
+      <ThoughtBubble variant={bubbleStyle} lang={thoughtLang}>
         {getThoughtForMood(mood, thoughts)}
       </ThoughtBubble>
     </span>
@@ -271,6 +291,14 @@ function resolveLegacyEyes(
         index >= 0 && indexes.indexOf(index) === position,
     )
     .map((index) => ({ index }));
+}
+
+function resolveEmojiEyes(letters: string[], eyes: ResolvedEye[]) {
+  const resolved = new Map(eyes.map((eye) => [eye.index, eye]));
+  for (const [index, letter] of letters.entries()) {
+    if (isEyeEmoji(letter)) resolved.set(index, { index, fixedCenter: true });
+  }
+  return [...resolved.values()].sort((left, right) => left.index - right.index);
 }
 
 function resolveCheeks(letters: string[], active: boolean) {

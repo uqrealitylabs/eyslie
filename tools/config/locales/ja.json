@@ -1,0 +1,31 @@
+{
+  "eyslie": {
+    "label": "日本語",
+    "thoughts": {
+      "subtle": {
+        "nearStartled": "おっ",
+        "excited": "いいね",
+        "blush": "どうも…",
+        "celebration": "やった",
+        "sadShrivel": "いたっ",
+        "recovery": "大丈夫"
+      },
+      "playful": {
+        "nearStartled": "わっ！",
+        "excited": "すごい！",
+        "blush": "あ、どうも",
+        "celebration": "やったー！",
+        "sadShrivel": "いたた…",
+        "recovery": "もう大丈夫"
+      },
+      "theatrical": {
+        "nearStartled": "うわー！",
+        "excited": "最高！",
+        "blush": "えっ、こんにちは！",
+        "celebration": "やったーー！",
+        "sadShrivel": "いたーーい！",
+        "recovery": "復活！"
+      }
+    }
+  }
+}

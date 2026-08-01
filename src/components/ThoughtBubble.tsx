@@ -10,9 +10,11 @@ export type ThoughtBubbleStyle = (typeof thoughtBubbleStyles)[number];
 
 export function ThoughtBubble({
   children,
+  lang,
   variant = "cloud",
 }: {
   children: string;
+  lang?: string | undefined;
   variant?: ThoughtBubbleStyle | undefined;
 }): ReactElement | null {
   if (!children) return null;
@@ -21,6 +23,8 @@ export function ThoughtBubble({
     <span
       className="eyslie__thought"
       data-bubble-style={variant}
+      dir="auto"
+      lang={lang}
       aria-hidden="true"
     >
       {children}
