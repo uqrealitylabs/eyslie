@@ -2,7 +2,11 @@ import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
-import { LivingText, parseEyeMarkers } from "../../dist/index.js";
+
+const buildPath = "../../dist/index.js";
+const { LivingText, parseEyeMarkers } = (await import(
+  buildPath
+)) as typeof import("../../src/index.js");
 
 const markedText = "W^O>W! <🙂 \\^";
 const defaultView = createElement(LivingText, { text: "JOIN US" });
