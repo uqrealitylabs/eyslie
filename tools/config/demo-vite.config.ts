@@ -6,10 +6,6 @@ const base = rawBase === "/" ? "/" : `/${rawBase.replace(/^\/+|\/+$/g, "")}/`;
 export default defineConfig({
   root: "examples/demo",
   base,
-  esbuild: {
-    jsx: "automatic",
-    jsxImportSource: "react",
-  },
   build: {
     outDir: "../../demo-dist",
     emptyOutDir: true,
