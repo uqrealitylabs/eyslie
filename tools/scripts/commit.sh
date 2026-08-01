@@ -7,10 +7,10 @@ die() {
 }
 
 [[ $# -eq 0 || ( $# -eq 1 && $1 == "--check" ) ]] ||
-  die "Usage: ./commit.sh [--check]"
+  die "Usage: ./tools/scripts/commit.sh [--check]"
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" ||
-  die "Run commit.sh inside a Git repository."
+  die "Run tools/scripts/commit.sh inside a Git repository."
 
 branch=$(git branch --show-current)
 [[ $branch =~ ^[[:alnum:]]+$ && $branch != main ]] ||
@@ -34,7 +34,7 @@ timestamp() {
 }
 
 if [[ ${1:-} == "--check" ]]; then
-  printf 'commit.sh valid; first commit: %s\n' "$(timestamp 0)"
+  printf 'tools/scripts/commit.sh valid; first commit: %s\n' "$(timestamp 0)"
   exit 0
 fi
 
@@ -59,6 +59,6 @@ commit_group "ci: verify package checks" .github/workflows/checks.yml
 commit_group "ci: harden security checks" .github/workflows/security.yml
 commit_group "ci: release GitHub and npm packages" .github/workflows/release.yml
 commit_group "ci: publish demo to GitHub Pages" .github/workflows/publish.yml
-commit_group "build: add progressive commit helper" commit.sh
+commit_group "build: update progressive commit helper" tools/scripts/commit.sh
 
 ((index > 0)) || die "No matching changes to commit."
