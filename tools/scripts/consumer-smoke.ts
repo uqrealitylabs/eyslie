@@ -7,17 +7,22 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 const root = process.cwd();
 const scratch = mkdtempSync(join(tmpdir(), "eyslie-consumer-"));
 process.on("exit", () => rmSync(scratch, { recursive: true, force: true }));
-const filename = execFileSync(
-  "npm",
-  ["pack", "--silent", "--ignore-scripts", "--pack-destination", scratch],
-  { cwd: root, encoding: "utf8" },
-).trim();
-const tarball = join(scratch, filename);
+const tarball = process.env.PACKAGE_TARBALL
+  ? resolve(process.env.PACKAGE_TARBALL)
+  : join(
+      scratch,
+      execFileSync(
+        "npm",
+        ["pack", "--silent", "--ignore-scripts", "--pack-destination", scratch],
+        { cwd: root, encoding: "utf8" },
+      ).trim(),
+    );
+if (!statSync(tarball).isFile()) throw new Error(`Missing tarball: ${tarball}`);
 const reactVersions = ["18.3.1", "19.2.8"];
 
 for (const [index, reactVersion] of reactVersions.entries()) {
