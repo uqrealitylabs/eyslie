@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0](https://github.com/uqrealitylabs/eyslie/compare/v0.4.0...v0.5.0) (2026-08-01)
+
+
+### Features
+
+* harden rendering edge cases ([#26](https://github.com/uqrealitylabs/eyslie/issues/26)) ([b2bc788](https://github.com/uqrealitylabs/eyslie/commit/b2bc788fce7ba49731411fb01ab0f08909167a79))
+* make living text fully expressive ([#48](https://github.com/uqrealitylabs/eyslie/issues/48)) ([e0cb847](https://github.com/uqrealitylabs/eyslie/commit/e0cb84760ed29b65a4f5d09de0d297738a3104db)), closes [#47](https://github.com/uqrealitylabs/eyslie/issues/47)
+
+
+### Bug Fixes
+
+* harden server and pointer rendering ([#37](https://github.com/uqrealitylabs/eyslie/issues/37)) ([ecdeb76](https://github.com/uqrealitylabs/eyslie/commit/ecdeb760f0f49a3ba3756a222320292cd2e85189))
+* harden the release gate ([#28](https://github.com/uqrealitylabs/eyslie/issues/28)) ([6de8fc5](https://github.com/uqrealitylabs/eyslie/commit/6de8fc5d9cb90f8fd9b9bd4c35ef8fbfdd6482c8))
+
 ## [0.4.0](https://github.com/uqrealitylabs/eyslie/compare/v0.3.0...v0.4.0) (2026-07-31)
 
 
