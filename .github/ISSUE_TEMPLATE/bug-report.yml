@@ -53,7 +53,7 @@ body:
     attributes:
       label: Logs
       description: Link a short log if it helps. Do not upload credentials, paid assets, private keys, screenshots with secrets, or huge binaries.
-      placeholder: Paste short public logs here, or use SECURITY.md for sensitive details.
+      placeholder: Paste short public logs here, or use docs/SECURITY.md for sensitive details.
     validations:
       required: false
   - type: textarea
