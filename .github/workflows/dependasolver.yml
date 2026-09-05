@@ -1,0 +1,19 @@
+name: bRad dependency solver
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+
+permissions: {}
+
+jobs:
+  brad:
+    permissions:
+      contents: write
+      pull-requests: write
+        uses: keys-i/dependasolver/.github/workflows/solve.yml@ca807a3d57544d0e0d3fc190ac26f837663e2ee3
+    with:
+      app-client-id: ${{ vars.DEPENDASOLVER_APP_CLIENT_ID }}
+      required-checks: '["test", "audit", "dependency-review"]'
+    secrets:
+      app-private-key: ${{ secrets.DEPENDASOLVER_APP_PRIVATE_KEY }}
