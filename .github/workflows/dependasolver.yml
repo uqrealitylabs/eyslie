@@ -1,4 +1,4 @@
-name: bRad dependency solver
+name: Rady dependency solver
 
 on:
   pull_request_target:
@@ -7,11 +7,11 @@ on:
 permissions: {}
 
 jobs:
-  brad:
+  rady:
     permissions:
       contents: write
       pull-requests: write
-    uses: keys-i/dependasolver/.github/workflows/solve.yml@f7b74d553e648a43e615f410a2a6a86864b7425e
+    uses: keys-i/dependasolver/.github/workflows/solve.yml@408eeb3c9df835e234b3a6e4f2124b15f9322732
     with:
       app-client-id: ${{ vars.DEPENDASOLVER_APP_CLIENT_ID }}
       required-checks: '["test", "audit", "dependency-review"]'
