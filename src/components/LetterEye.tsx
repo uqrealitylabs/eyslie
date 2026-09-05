@@ -7,6 +7,7 @@ export type LetterEyeProps = {
   eyeRole?: "primary" | "secondary" | undefined;
   eyeIndex?: number | undefined;
   restGaze?: "left" | "up" | "right" | undefined;
+  fixedCenter?: boolean | undefined;
   blushSides?: readonly ("left" | "right")[] | undefined;
   winking?: boolean | undefined;
 };
@@ -16,19 +17,22 @@ export function LetterEye({
   eyeRole = "primary",
   eyeIndex,
   restGaze,
+  fixedCenter = false,
   blushSides = [],
   winking = false,
 }: LetterEyeProps): ReactElement {
-  const fixedCenter = isEyeEmoji(letter);
+  const syntheticEye = isEyeEmoji(letter);
+  const hasFixedCenter = syntheticEye || fixedCenter;
   return (
     <span
       className="eyslie__letter eyslie__letter--eye"
       data-eye-role={eyeRole}
       data-eye-index={eyeIndex}
-      data-rest-gaze={fixedCenter ? undefined : restGaze}
-      data-eye-emoji={fixedCenter ? "true" : undefined}
+      data-rest-gaze={hasFixedCenter ? undefined : restGaze}
+      data-eye-emoji={syntheticEye ? "true" : undefined}
+      data-fixed-center={hasFixedCenter ? "true" : undefined}
       data-winking={winking ? "true" : "false"}
-      {...(fixedCenter
+      {...(hasFixedCenter
         ? {
             style: {
               "--eyslie-pupil-x": "0px",

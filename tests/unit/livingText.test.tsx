@@ -382,13 +382,12 @@ describe("rendering", () => {
     },
   );
 
-  it("carries marker directions into rendered resting gaze", () => {
+  it("renders marker eyes as fixed-center synthetic eyes", () => {
     const html = renderToString(
       <LivingText text="<A^B>C" eyeMarkers gaze="centered" />,
     );
-    expect(html.match(/data-rest-gaze="left"/g) ?? []).toHaveLength(1);
-    expect(html.match(/data-rest-gaze="up"/g) ?? []).toHaveLength(1);
-    expect(html.match(/data-rest-gaze="right"/g) ?? []).toHaveLength(1);
+    expect(html.match(/data-fixed-center="true"/g) ?? []).toHaveLength(3);
+    expect(html).not.toContain("data-rest-gaze=");
   });
 
   it.each(gazeBehaviors)(
@@ -397,10 +396,9 @@ describe("rendering", () => {
       const html = renderToString(
         <LivingText text="<A^B>👁️" eyeMarkers gaze={gaze} />,
       );
-      expect(html.match(/data-rest-gaze="left"/g) ?? []).toHaveLength(1);
-      expect(html.match(/data-rest-gaze="up"/g) ?? []).toHaveLength(1);
+      expect(html.match(/data-fixed-center="true"/g) ?? []).toHaveLength(3);
       expect(html.match(/data-eye-emoji="true"/g) ?? []).toHaveLength(1);
-      expect(html).not.toContain('data-rest-gaze="right"');
+      expect(html).not.toContain("data-rest-gaze=");
       if (gaze === "follow") expect(html).not.toContain("data-gaze");
       else expect(html).toContain(`data-gaze="${gaze}"`);
     },
@@ -480,8 +478,8 @@ describe("rendering", () => {
       />,
     );
     expect(html).toContain(`data-mood="${mood}"`);
-    expect(html).toContain('data-rest-gaze="up"');
-    expect(html).toContain('data-rest-gaze="right"');
+    expect(html).toContain('data-fixed-center="true"');
+    expect(html).not.toContain("data-rest-gaze=");
     if (eyeShape !== "round")
       expect(html).toContain(`data-eye-shape="${eyeShape}"`);
     if (eyeStyle !== "classic")
@@ -684,6 +682,7 @@ describe("browser hooks", () => {
         left: number,
         hasInnerEye: boolean,
         eyeEmoji = false,
+        fixedCenter = false,
       ) => {
         const innerEye = hasInnerEye
           ? {
@@ -698,7 +697,11 @@ describe("browser hooks", () => {
         return {
           innerEye,
           getAttribute: (name: string) =>
-            name === "data-eye-emoji" && eyeEmoji ? "true" : null,
+            name === "data-eye-emoji" && eyeEmoji
+              ? "true"
+              : name === "data-fixed-center" && fixedCenter
+                ? "true"
+                : null,
           style: { setProperty: vi.fn() },
           querySelector: () => innerEye,
           getBoundingClientRect: vi.fn(() => ({
@@ -713,6 +716,7 @@ describe("browser hooks", () => {
         makeEye(0, true),
         makeEye(30, false),
         makeEye(60, true, true),
+        makeEye(90, false, false, true),
       ];
       const trackedEyes = eyes.slice(0, 2);
       const root = {
@@ -756,6 +760,7 @@ describe("browser hooks", () => {
         );
       }
       expect(eyes[2]?.style.setProperty).not.toHaveBeenCalled();
+      expect(eyes[3]?.style.setProperty).not.toHaveBeenCalled();
       const fullStrengthX = Number.parseFloat(
         eyes[0]?.style.setProperty.mock.calls
           .filter(([property]) => property === "--eyslie-pupil-x")
@@ -781,6 +786,7 @@ describe("browser hooks", () => {
         );
       }
       expect(eyes[2]?.style.setProperty).not.toHaveBeenCalled();
+      expect(eyes[3]?.style.setProperty).not.toHaveBeenCalled();
       expect(registrations.get("scroll")).toBe(true);
       const writes = eyes.map((eye) => eye.style.setProperty.mock.calls.length);
       for (const event of ["blur", "resize", "scroll"]) {

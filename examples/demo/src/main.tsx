@@ -115,6 +115,7 @@ type Preset = {
   eyeStyle: EyeStyle;
   gaze: GazeBehavior;
   bubble: ThoughtBubbleStyle;
+  badge: string;
 };
 
 const presets: Preset[] = [
@@ -127,6 +128,7 @@ const presets: Preset[] = [
     eyeStyle: "paper",
     gaze: "softFollow",
     bubble: "whisper",
+    badge: "🌅",
   },
   {
     name: "Tiny galaxy",
@@ -137,6 +139,7 @@ const presets: Preset[] = [
     eyeStyle: "cosmic",
     gaze: "wander",
     bubble: "cloud",
+    badge: "✨",
   },
   {
     name: "Retro arcade",
@@ -147,6 +150,7 @@ const presets: Preset[] = [
     eyeStyle: "pixel",
     gaze: "scan",
     bubble: "pixel",
+    badge: "🕹️",
   },
   {
     name: "Storybook ink",
@@ -157,6 +161,7 @@ const presets: Preset[] = [
     eyeStyle: "ink",
     gaze: "sideGlance",
     bubble: "comic",
+    badge: "📖",
   },
   {
     name: "Solar garden",
@@ -167,6 +172,7 @@ const presets: Preset[] = [
     eyeStyle: "classic",
     gaze: "follow",
     bubble: "cloud",
+    badge: "🌱",
   },
   {
     name: "City after dark",
@@ -177,6 +183,7 @@ const presets: Preset[] = [
     eyeStyle: "neon",
     gaze: "scan",
     bubble: "comic",
+    badge: "🌆",
   },
 ];
 
@@ -472,7 +479,7 @@ function App() {
               <fieldset className="mood-field control-wide">
                 <legend>Emotion spectrum</legend>
                 <p className="field-hint">
-                  Pick the feeling, then tune how strongly it speaks.
+                  Pick the feeling, then touch anywhere on the bar for nuance.
                 </p>
                 <div
                   className="emotion-wheel"
@@ -538,7 +545,7 @@ function App() {
                     type="range"
                     min="0"
                     max="2"
-                    step="1"
+                    step="0.02"
                     value={intensity}
                     aria-valuetext={formatLabel(expression)}
                     onChange={(event) =>
@@ -710,6 +717,9 @@ function App() {
                 onClick={() => usePreset(preset)}
               >
                 <span className="preset-face" aria-hidden="true">
+                  <span className="preset-badge" aria-hidden="true">
+                    {preset.badge}
+                  </span>
                   <LivingText
                     text={preset.text}
                     eyeMarkers

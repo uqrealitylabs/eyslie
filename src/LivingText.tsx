@@ -115,6 +115,7 @@ export function LivingText({
           marked.eyes.map(({ index, gaze }) => ({
             index,
             restGaze: gaze,
+            fixedCenter: true,
           })),
         ),
         labelText: marked.text,
@@ -213,6 +214,7 @@ export function LivingText({
                           : "left"
                         : undefined))
                 }
+                fixedCenter={eye.fixedCenter}
                 blushSides={blushSides}
                 winking={wink.isWinking && eye.eyeIndex === winkTarget}
               />

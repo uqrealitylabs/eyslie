@@ -1,6 +1,6 @@
 {
   "name": "@uqrealitylabs/eyslie",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Expressive living text eyes, moods, reactive mouths, blush, bubbles, and localized reactions for React.",
   "type": "module",
   "license": "GPL-3.0-only",

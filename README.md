@@ -24,17 +24,15 @@ import "@uqrealitylabs/eyslie/styles.css";
 Turn on `eyeMarkers`, then place a marker immediately before any Unicode
 grapheme:
 
-- `<` gives the next character a resting left gaze.
-- `^` gives the next character a resting upward gaze.
-- `>` gives the next character a resting right gaze.
+- `<`, `^`, and `>` all mark the next character as an eye.
+- Each marker keeps that eye centered and fixed to its own character.
 
 Markers are removed from both the rendered word and its default accessible
 label. Escape a literal marker or backslash with `\` (`\^`, `\<`, `\>`, `\\`).
 A trailing marker stays literal. When several markers precede one grapheme, the
 last direction wins.
 
-An explicit direction marker wins over the global `gaze` behaviour. Eye emoji
-are the deliberate exception: they always stay centred.
+Eye emoji are still an explicit exception: they always stay centred.
 
 ```tsx
 <LivingText
@@ -52,9 +50,9 @@ are the deliberate exception: they always stay centred.
 />
 ```
 
-This displays and announces `WOW!`; the O looks up and the second W rests to
-the right. Marker parsing is opt-in, so ordinary `<`, `^`, and `>` text remains
-unchanged by default.
+This displays and announces `WOW!`; both O and W keep centred eyes. Marker
+parsing is opt-in, so ordinary `<`, `^`, and `>` text remains unchanged by
+default.
 
 The standalone `👁` and emoji-style `👁️` graphemes are always treated as a
 single classic eye. Their platform glyph is visually replaced to avoid a

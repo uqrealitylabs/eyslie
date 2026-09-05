@@ -21,7 +21,9 @@ export function useEyeTracking(
       const eyes = root.querySelectorAll<HTMLElement>("[data-eye-role]");
       return eyes.length
         ? Array.from(eyes).filter(
-            (eye) => eye.getAttribute?.("data-eye-emoji") !== "true",
+            (eye) =>
+              eye.getAttribute?.("data-eye-emoji") !== "true" &&
+              eye.getAttribute?.("data-fixed-center") !== "true",
           )
         : [root];
     };

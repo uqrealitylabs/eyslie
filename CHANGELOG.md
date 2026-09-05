@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.1](https://github.com/uqrealitylabs/eyslie/compare/v0.6.0...v0.6.1) (2026-08-02)
+
+### Features
+
+* support continuous expression spectrum control in the demo
+* make eye-marker eyes fixed-center and non-tracking
+* add playful atmosphere badges for world presets
+
+### Fixes
+
+* keep fixed eyes out of pointer-tracking math so they stay stable on their target letters
+
 ## [0.6.0](https://github.com/uqrealitylabs/eyslie/compare/v0.5.0...v0.6.0) (2026-08-01)
 
 

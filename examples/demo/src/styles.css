@@ -979,7 +979,20 @@ h3 {
   color: var(--ink);
   background: var(--panel);
   box-shadow: 5px 5px 0 var(--ink);
+  position: relative;
+  overflow: hidden;
   text-align: left;
+}
+
+.preset-card::before {
+  content: "";
+  position: absolute;
+  top: -36px;
+  right: -16px;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 25%), transparent 60%);
 }
 
 .preset-card:nth-child(3n + 1) {
@@ -998,8 +1011,27 @@ h3 {
   display: grid;
   place-items: center;
   min-height: 100px;
+  position: relative;
   font-family: "Pixelify Sans", ui-monospace, monospace;
   font-size: clamp(2.4rem, 4.5vw, 4rem);
+  transition: transform 180ms ease;
+}
+
+.preset-card:hover .preset-face {
+  transform: rotate(-2deg) scale(1.04);
+}
+
+.preset-badge {
+  position: absolute;
+  top: 5px;
+  right: 4px;
+  font-size: 1.15rem;
+  filter: drop-shadow(0 0.08em 0.08em rgb(0 0 0 / 15%));
+  transition: transform 180ms ease;
+}
+
+.preset-card:hover .preset-badge {
+  transform: scale(1.1) rotate(-8deg);
 }
 
 .preset-card strong {
