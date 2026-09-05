@@ -1,0 +1,49 @@
+name: Dependabot auto-merge
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dependabot-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  auto-merge:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # This privileged workflow never checks out or executes PR code.
+      - name: Fetch verified Dependabot metadata
+        id: metadata
+        # -- v3 --
+        uses: dependabot/fetch-metadata@v3
+        with:
+          compat-lookup: true
+          github-token: ${{ secrets.DEPENDABOT_COMPAT_TOKEN }}
+      - name: Require protected checks and enable auto-merge
+        if: >-
+          fromJSON(steps.metadata.outputs.compatibility-score || '0') >= 95 &&
+          fromJSON(steps.metadata.outputs.compatibility-score || '0') <= 100 &&
+          contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.metadata.outputs.update-type) &&
+          steps.metadata.outputs.maintainer-changes == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          branch=$(jq -rn --arg branch "$BASE_BRANCH" '$branch | @uri')
+          gh api "repos/$GH_REPO/branches/$branch/protection/required_status_checks" |
+            jq -e '.strict == true and ([.contexts[]?, .checks[]?.context] | unique | contains(["checks", "frontend", "container"]))'
+          gh pr merge "$PR_URL" --auto --squash --match-head-commit "$HEAD_SHA"
+
