@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   blinkBehaviors,
@@ -33,7 +33,78 @@ declare const __EYSLIE_LOCALES__: DemoLocaleCatalog;
 const moodOptions: LivingTextMood[] = Object.values(livingTextMoods);
 const themeOptions = Object.keys(livingTextThemes) as LivingTextTheme[];
 const localeCatalog = __EYSLIE_LOCALES__;
-const localeOptions = Object.keys(localeCatalog);
+const moodSpectrum: Record<LivingTextMood, string> = {
+  [livingTextMoods.idleCurious]: "#a5f3fc",
+  [livingTextMoods.nearStartled]: "#facc15",
+  [livingTextMoods.excited]: "#f97316",
+  [livingTextMoods.blush]: "#f472b6",
+  [livingTextMoods.celebration]: "#c084fc",
+  [livingTextMoods.sadShrivel]: "#60a5fa",
+  [livingTextMoods.recovery]: "#34d399",
+};
+const mostSpokenLanguages = [
+  "en",
+  "zh",
+  "es",
+  "hi",
+  "ar",
+  "bn",
+  "pt",
+  "ru",
+  "ur",
+  "id",
+  "de",
+  "ja",
+  "sw",
+  "mr",
+  "te",
+  "tr",
+  "ko",
+  "vi",
+  "ta",
+  "it",
+  "fr",
+  "th",
+  "fa",
+  "pl",
+  "ro",
+  "uk",
+  "nl",
+  "ms",
+  "el",
+  "cs",
+  "sv",
+  "fi",
+  "hu",
+  "bg",
+  "sr",
+  "hr",
+  "sk",
+  "sl",
+  "lt",
+  "ne",
+  "he",
+  "gu",
+  "kn",
+  "ml",
+  "pa",
+  "jv",
+  "my",
+  "tl",
+  "am",
+  "mk",
+] as const;
+const mostSpokenLanguageSet = new Set<string>(mostSpokenLanguages);
+const defaultLanguage = "en";
+const languageNames = new Intl.DisplayNames(["en"], { type: "language" });
+const moodWheelGradient = moodOptions
+  .map(
+    (mood, index) =>
+      `${moodSpectrum[mood]} ${(index / moodOptions.length) * 100}% ${(
+        index + 1
+      ) / moodOptions.length * 100}%`,
+  )
+  .join(", ");
 
 type Preset = {
   name: string;
@@ -123,14 +194,52 @@ function App() {
   const [blush, setBlush] = useState<boolean | "auto">("auto");
   const [locale, setLocale] = useState("en");
   const [reducedMotion, setReducedMotion] = useState(false);
-  const thoughtLocale = resolveThoughtLocale(localeCatalog, locale);
-  const localeContent = localeCatalog[thoughtLocale];
-  const thoughtLanguage = thoughtLocale === "und" ? undefined : thoughtLocale;
+  const [isDarkMode, setDarkMode] = useState(false);
+  useEffect(() => {
+    document.documentElement.dataset.theme = isDarkMode ? "dark" : "light";
+  }, [isDarkMode]);
+  const catalogWithFallbacks = useMemo(() => {
+    const fallback = localeCatalog[defaultLanguage] ?? localeCatalog.und;
+    if (!fallback) return localeCatalog;
+    return Object.fromEntries(
+      [...mostSpokenLanguages, ...Object.keys(localeCatalog)].map((code) => {
+        const existing = localeCatalog[code];
+        if (existing) return [code, existing];
+        return [
+          code,
+          {
+            ...fallback,
+            label: languageNames.of(code) ?? code,
+          },
+        ];
+      }),
+    ) as DemoLocaleCatalog;
+  }, []);
+  const localeOptions = [
+    ...mostSpokenLanguages,
+    ...Object.keys(localeCatalog).filter(
+      (code) => !mostSpokenLanguageSet.has(code),
+    ),
+  ];
+  const thoughtLocale = resolveThoughtLocale(
+    catalogWithFallbacks,
+    locale,
+    defaultLanguage,
+  );
+  const catalogLocale = resolveThoughtLocale(localeCatalog, locale);
+  const displayLocaleContent =
+    catalogWithFallbacks[thoughtLocale] ?? localeCatalog.und;
+  const resolvedThoughtLocale =
+    catalogLocale === "und" ? "und" : thoughtLocale;
+  const localeContent =
+    catalogWithFallbacks[resolvedThoughtLocale] ?? localeCatalog.und;
+  const thoughtLanguage =
+    catalogLocale === "und" ? undefined : catalogLocale;
   const expression = getExpressionLevel(intensity);
   const localizedThoughts = localeContent.thoughts[expression];
   const localizedThought = localizedThoughts[mood];
   const thoughtAnnouncement =
-    localizedThought || (thoughtLocale === "und" ? localeContent.label : "");
+    localizedThought || (catalogLocale === "und" ? localeContent.label : "");
 
   function reset() {
     setText("W^O>W!");
@@ -158,7 +267,7 @@ function App() {
   }
 
   return (
-    <div className="demo-shell">
+    <div className="demo-shell" data-theme={isDarkMode ? "dark" : "light"}>
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Eyslie home">
           <span className="brand-face" aria-hidden="true">
@@ -172,6 +281,14 @@ function App() {
           <a href="https://github.com/uqrealitylabs/eyslie" rel="noreferrer">
             GitHub ↗
           </a>
+          <button
+            className="text-button theme-toggle"
+            type="button"
+            aria-pressed={isDarkMode}
+            onClick={() => setDarkMode((value) => !value)}
+          >
+            {isDarkMode ? "☀️ Light mode" : "🌙 Dark mode"}
+          </button>
         </nav>
       </header>
 
@@ -308,7 +425,7 @@ function App() {
                 <span>
                   {formatLabel(mood)} ·{" "}
                   <span lang={thoughtLanguage} dir="auto">
-                    {localeContent.label}
+                    {displayLocaleContent.label}
                   </span>{" "}
                   · {formatLabel(expression)} · {formatLabel(theme)}
                 </span>
@@ -357,20 +474,56 @@ function App() {
                 <p className="field-hint">
                   Pick the feeling, then tune how strongly it speaks.
                 </p>
-                <div className="mood-options">
-                  {moodOptions.map((option) => (
-                    <label key={option}>
-                      <input
-                        type="radio"
-                        name="mood"
-                        value={option}
-                        checked={mood === option}
-                        onChange={() => setMood(option)}
-                      />
-                      <span>{formatLabel(option)}</span>
-                    </label>
-                  ))}
+                <div
+                  className="emotion-wheel"
+                  style={{
+                    background: `conic-gradient(${moodWheelGradient})`,
+                  }}
+                >
+                  {moodOptions.map((option, index) => {
+                    const angle =
+                      (360 / moodOptions.length) * index - 90;
+                    const radians = (angle * Math.PI) / 180;
+                    const radius = 43;
+                    return (
+                      <label
+                        key={option}
+                        className={`emotion-wheel-option ${
+                          mood === option ? "is-active" : ""
+                        }`}
+                        style={{
+                          left: `${50 + radius * Math.cos(radians)}%`,
+                          top: `${50 + radius * Math.sin(radians)}%`,
+                          transform: "translate(-50%, -50%)",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="mood"
+                          value={option}
+                          checked={mood === option}
+                          onChange={() => setMood(option)}
+                        />
+                        <span
+                          className="emotion-wheel-pin"
+                          style={{ background: moodSpectrum[option] }}
+                        />
+                        <span className="emotion-wheel-label">
+                          {formatLabel(option)}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
+                <p className="field-meta">
+                  <span>Selected mood:</span>
+                  <span
+                    className="emotion-wheel-chip"
+                    style={{ background: moodSpectrum[mood] }}
+                  >
+                    {formatLabel(mood)}
+                  </span>
+                </p>
                 <div className="spectrum-control">
                   <span className="spectrum-heading">
                     <label htmlFor="expression-intensity">
@@ -423,7 +576,11 @@ function App() {
                     {localeOptions.map((option) => (
                       <option
                         value={option}
-                        label={localeCatalog[option]?.label}
+                        label={
+                          catalogWithFallbacks[option]?.label ??
+                          languageNames.of(option) ??
+                          option
+                        }
                         lang={option === "und" ? undefined : option}
                         dir="auto"
                         key={option}
@@ -433,7 +590,7 @@ function App() {
                   <small>
                     Try en-AU, ar-EG, zh-CN or mi-NZ →{" "}
                     <span lang={thoughtLanguage} dir="auto">
-                      {localeContent.label}
+                      {displayLocaleContent.label}
                     </span>
                   </small>
                 </label>
@@ -472,13 +629,35 @@ function App() {
                 onChange={setBubble}
               />
 
-              <ChoiceControl
-                label="Mouth expression"
-                name="mouth"
-                value={mouth}
-                options={mouthStyles}
-                onChange={setMouth}
-              />
+              <fieldset className="choice-field control-wide">
+                <legend>Mouth spectrum</legend>
+                <p className="field-hint">
+                  Move across the spectrum to pick a mouth expression.
+                </p>
+                <div className="mouth-spectrum">
+                  <span className="spectrum-heading">
+                    <label htmlFor="mouth-style">Mouth expression</label>
+                    <output htmlFor="mouth-style">{formatLabel(mouth)}</output>
+                  </span>
+                  <input
+                    id="mouth-style"
+                    type="range"
+                    min="0"
+                    max={mouthStyles.length - 1}
+                    step="1"
+                    value={mouthStyles.indexOf(mouth)}
+                    aria-valuetext={formatLabel(mouth)}
+                    onChange={(event) =>
+                      setMouth(mouthStyles[Number(event.currentTarget.value)]!)
+                    }
+                  />
+                  <span className="spectrum-stops" aria-hidden="true">
+                    {mouthStyles.map((option) => (
+                      <span key={option}>{formatLabel(option)}</span>
+                    ))}
+                  </span>
+                </div>
+              </fieldset>
 
               <ChoiceControl
                 label="Blush"
