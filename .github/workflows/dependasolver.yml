@@ -1,19 +1,31 @@
-name: Rady dependency solver
+name: Dependasolver and Rady
 
 on:
   pull_request_target:
     types: [opened, reopened, synchronize, edited, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: PR number to review again using the current CI results
+        required: true
+        type: number
 
 permissions: {}
 
 jobs:
-  rady:
+  review:
     permissions:
       contents: write
       pull-requests: write
-    uses: keys-i/dependasolver/.github/workflows/solve.yml@1e6e38e7e93e69c07b98002619ff108e7f49dc8b
+    uses: keys-i/dependasolver/.github/workflows/solve.yml@dae89470e07965d83a46e7087a6181600d849e7e
     with:
+      solver-ref: keys-i/dependasolver@dae89470e07965d83a46e7087a6181600d849e7e
       app-client-id: ${{ vars.DEPENDASOLVER_APP_CLIENT_ID }}
+      rady-app-client-id: ${{ vars.RADY_APP_CLIENT_ID }}
       required-checks: '["test", "audit", "dependency-review"]'
+      model: ${{ vars.RADY_MODEL || 'gpt-5.4' }}
+      pr-number: ${{ inputs.pr-number || 0 }}
     secrets:
       app-private-key: ${{ secrets.DEPENDASOLVER_APP_PRIVATE_KEY }}
+      rady-app-private-key: ${{ secrets.RADY_APP_PRIVATE_KEY }}
+      openai-api-key: ${{ secrets.OPENAI_API_KEY }}
