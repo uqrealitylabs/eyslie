@@ -20,9 +20,14 @@ export function findActionPinIssues(root = workflowRoot) {
   const issues: string[] = [];
   const files = workflowFiles(root);
 
-  const actual = files.map((file) => file.slice(root.length + 1)).sort();
+  const actual = files
+    .map((file) => file.slice(root.length + 1))
+    .filter((file) => file !== "dependasolver.yml")
+    .sort();
   if (actual.join() !== expectedWorkflows.join()) {
-    issues.push(`${root} must contain only: ${expectedWorkflows.join(", ")}`);
+    issues.push(
+      `${root} must contain: ${expectedWorkflows.join(", ")}; only dependasolver.yml is optional`,
+    );
   }
 
   for (const file of files) {
