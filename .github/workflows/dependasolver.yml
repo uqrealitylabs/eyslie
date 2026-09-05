@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: keys-i/dependasolver/.github/workflows/solve.yml@c3f8cbfd4dc9f033c07373915b3dcdfc016a5137
+    uses: keys-i/dependasolver/.github/workflows/solve.yml@1e6e38e7e93e69c07b98002619ff108e7f49dc8b
     with:
       app-client-id: ${{ vars.DEPENDASOLVER_APP_CLIENT_ID }}
       required-checks: '["test", "audit", "dependency-review"]'
